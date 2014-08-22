@@ -1,0 +1,3 @@
+uint32 shape_type_code
+---
+std_msgs/Bool is_possible

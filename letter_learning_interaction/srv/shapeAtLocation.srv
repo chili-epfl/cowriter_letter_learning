@@ -1,0 +1,4 @@
+geometry_msgs/Point location
+---
+int32 shape_type_code
+int32 shape_id

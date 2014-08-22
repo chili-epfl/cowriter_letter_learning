@@ -1,0 +1,4 @@
+uint32 shape_type_code
+geometry_msgs/Point location
+---
+std_msgs/Bool success

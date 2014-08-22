@@ -1,0 +1,112 @@
+<launch>
+    <arg name="nao_handedness" default="right" />
+    <arg name="nao_ip" default="127.0.0.1" />
+    <arg name="use_external_camera" default="true" />
+    <arg name="camera_device" default="/dev/video0" /> <!-- only used if using external camera -->
+    
+    <!-- Language of interaction (french and english supported by nao) -->
+    <arg name="language" default="english" />
+    
+    <!-- Name of frame representing writing surface origin (at bottom left of surface, with x to the left and y up) -->
+    <arg name="writing_surface_frame_id" default="writing_surface" /> 
+
+    <!-- Where the datasets for generating letter models for the learning algorithm are stored -->
+    <arg name="letter_model_dataset_directory" default="default"/> 
+    
+    <!-- Inputs to learning algorithm -->
+    <arg name="shape_feedback_topic" default="shape_feedback" />
+    <arg name="words_to_write_topic" default="words_to_write" />
+    <arg name="stop_request_topic" default="stop_learning" />    
+    <arg name="test_request_topic" default="test_learning" />
+    <arg name="touch_info_topic" default="touch_info" />
+    <arg name="gesture_info_topic" default="gesture_info" />
+    <arg name="shape_writing_finished_topic" default="shape_finished" />
+    <arg name="user_drawn_shapes_topic" default="user_drawn_shapes" />
+    <arg name="new_teacher_topic" default="new_child" />
+    
+    <!-- Outputs from learning algorithm -->
+    <arg name="trajectory_visualization_topic" default="write_traj" /> 
+    <arg name="trajectory_nao_topic" default="write_traj_downsampled" />
+    <arg name="clear_writing_surface_topic" default="clear_screen" /> 
+    <arg name="camera_publishing_status_topic" default="camera_publishing_status" />
+    
+    <!-- Frame of camera that will be detecting fiducial markers for words to write -->
+    <arg name="word_detector_frame_id" value="v4l_frame" if="$(arg use_external_camera)" />
+    <arg name="word_detector_frame_id" value="CameraTop_frame" unless="$(arg use_external_camera)" />
+    
+    <arg name="camera_image_topic" value="v4l/camera/image_raw" if="$(arg use_external_camera)" />
+    <arg name="camera_image_topic" value="/nao_camera/image_raw" unless="$(arg use_external_camera)" />
+
+
+    <!-- ##### END ARGUMENTS ##### -->  
+    
+    
+    <!-- Start the capabilities for the Nao to trace messages on a writing surface -->
+    <include file="$(find nao_trajectory_following)/launch/nao_writing_on_surface.launch" >
+        <arg name="nao_handedness" value="$(arg nao_handedness)" />
+        <arg name="nao_ip" value="$(arg nao_ip)"/>
+        <arg name="writing_surface_frame_id" value="$(arg writing_surface_frame_id)" /> 
+        <arg name="trajectory_visualization_input_topic" value="$(arg trajectory_visualization_topic)" />
+        <arg name="trajectory_nao_input_topic" value="$(arg trajectory_nao_topic)" />
+        <arg name="clear_writing_surface_topic" value="$(arg clear_writing_surface_topic)" />
+    </include>
+
+    <!-- Start the learning algorithm -->
+    <node pkg="shape_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">
+        <param name="language" type="str" value="$(arg language)"/>
+        <param name="nao_ip" type="str" value="$(arg nao_ip)"/>
+        <param name="nao_handedness" type="str" value="$(arg nao_handedness)"/>
+        <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
+        <param name="writing_surface_frame_id" type="str" value="$(arg writing_surface_frame_id)"/>
+
+        <param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
+        <param name="words_to_write_topic" type="str" value="$(arg words_to_write_topic)"/>
+        <param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
+        <param name="test_request_topic" type="str" value="$(arg test_request_topic)"/>
+        <param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>
+        <param name="shape_writing_finished_topic" type="str" value="$(arg shape_writing_finished_topic)"/>
+        <param name="user_drawn_shapes_topic" type="str" value="$(arg user_drawn_shapes_topic)"/>
+        <param name="new_teacher_topic" type="str" value="$(arg new_teacher_topic)"/>
+        
+        <param name="trajectory_output_topic" type="str" value="$(arg trajectory_visualization_topic)"/>
+        <param name="trajectory_output_nao_topic" type="str" value="$(arg trajectory_nao_topic)"/>        
+        <param name="clear_writing_surface_topic" type="str" value="$(arg clear_writing_surface_topic)"/>
+        <param name="camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>
+    </node>
+
+    <!-- Start the appropriate camera -->
+    <group if="$(arg use_external_camera)">
+        <include file="$(find gscam)/v4l.launch" >
+            <arg name="DEVICE" value="$(arg camera_device)"/>
+        </include>
+    </group>
+    <group unless="$(arg use_external_camera)">
+        <include file="$(find nao_driver)/launch/nao_camera.launch">
+            <arg name="nao_ip" value="$(arg nao_ip)"/>
+        </include>
+    </group>
+    
+    <!-- Start the card detection -->
+    <include file="$(find ros_markers)/detect.launch" >
+        <arg name="camera_frame_id" value="$(arg word_detector_frame_id)"/>
+        <arg name="image_topic" value="$(arg camera_image_topic)"/>
+    </include>
+    <node pkg="shape_learning_interaction" type="word_card_detector.py" name="word_detector">
+        <param name="detector_frame_id" type="str" value="$(arg word_detector_frame_id)"/>
+        <param name="language" type="str" value="$(arg language)"/>
+        <param name="detected_words_topic" type="str" value="$(arg words_to_write_topic)"/>
+        <param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
+        <param name="test_request_topic" type="str" value="$(arg test_request_topic)"/>
+    </node>
+
+    <!-- Start the display manager server, which will be accessed by the gesture_manager node and the relevant shape_learning package's node -->
+    <node pkg="shape_learning_interaction" type="display_manager_server.py" name="display_manager_server"/>
+
+    <!-- Start the gesture listener, which will map gestures to the relevant shape -->
+    <node pkg="shape_learning_interaction" type="gesture_manager.py" name="gesture_manager">   
+        <param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
+        <param name="touch_info_topic" type="str" value="$(arg touch_info_topic)"/>
+        <param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>
+    </node>
+
+</launch>
