@@ -28,20 +28,13 @@ from copy import deepcopy
 drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER'];
 
 
+rospy.init_node("learning_words_nao");
 
 #Nao parameters
 NAO_IP = rospy.get_param('~nao_ip','127.0.0.1'); #default behaviour is to connect to simulator locally
-naoConnected = False;
-naoSpeaking = False;
-naoWriting = False;
-
-#How to deal with this cyclical dependency on rosparam/init_node? (Get rid of pyrobots anyway probably)
-if(naoConnected):
-    import robots
-    from robots import naoqi_request
-    nao = robots.Nao(ros=True, host=NAO_IP);
-else:
-    rospy.init_node("learning_words_nao");
+naoConnected = True;
+naoSpeaking = True;
+naoWriting = True;
 
 LANGUAGE = rospy.get_param('~language','english');
 NAO_HANDEDNESS = rospy.get_param('~nao_handedness','right')
@@ -468,44 +461,27 @@ def generateSettings(shapeType):
     initialBounds_stdDevMultiples = initialBounds_stdDevMultiples,
     initialParamValue = initialParamValue, minParamDiff = 0.4);
     return settings
-    
-def lookAtShape(traj):
-    trajStartPosition = traj.poses[0].pose.position;
-    trajStartPosition_robot = tl.transformPose("base_footprint",target)
-    nao.look_at([trajStartPosition.x,trajStartPosition.y,trajStartPosition.z,target_frame]); #look at shape again 
-    
+
 def lookAtTablet():
     if(effector=="RArm"):   #tablet will be on our right
-        nao.setpose({"HEAD":(-0.2, 0.08125996589660645)})   
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.2, 0.08125996589660645],0.8);
     else: 
-        nao.setpose({"HEAD":(0.2, 0.08125996589660645)}) 
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.2, 0.08125996589660645],0.8);
     
 def lookAndAskForFeedback(toSay,side):
     if(naoWriting):
         #put arm down
-        nao.execute([naoqi_request("motion","angleInterpolationWithSpeed",["RArm",joints_standInit,0.2])])
+        motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.8)
     
     if(side=="Right"):   #person will be on our right
-        nao.setpose({"HEAD":(-0.9639739513397217, 0.08125996589660645)})
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.9639739513397217, 0.08125996589660645],0.8);
     else:                   #person will be on our left
-        nao.setpose({"HEAD":(0.9639739513397217, 0.08125996589660645)})
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.9639739513397217, 0.08125996589660645],0.8);
         
     if(naoSpeaking):
         textToSpeech.say(toSay);
         print('NAO: '+toSay);
 
-def relax():    
-    pNames = "LArm"
-    pStiffnessLists = 0.0
-    pTimeLists = 1.0
-    nao.execute([naoqi_request("motion","stiffnessInterpolation",[pNames, pStiffnessLists, pTimeLists])]);
-    
-    pNames = "RArm"
-    nao.execute([naoqi_request("motion","stiffnessInterpolation",[pNames, pStiffnessLists, pTimeLists])]);
-
-    pNames = "Head"
-    nao.execute([naoqi_request("motion","stiffnessInterpolation",[pNames, pStiffnessLists, pTimeLists])]);    
-    
 def onShapeFinished(message):
     global shapeFinished;
     shapeFinished = True; #TODO only register when appropriate
@@ -866,7 +842,8 @@ def stopInteraction(infoFromPrevState):
     if(naoSpeaking):
         textToSpeech.say(thankYouPhrase);   
     if(naoConnected):
-        nao.execute([naoqi_request("motion","rest",[])]);
+        motionProxy.wbEnableEffectorControl(effector,False);
+        motionProxy.rest()
 
     nextState = "EXIT";
     infoForNextState = 0;
@@ -909,7 +886,7 @@ def onWordReceived(message):
           
 def onNewChildReceived(message):
     if(naoWriting):
-            nao.setpose("StandInit");
+            postureProxy.goToPosture("StandInit", 0.3)
     if(naoSpeaking):
         global nextSideToLookAt
         #toSay = "Hello. I'm Nao. Please show me a word to practice.";
@@ -1109,21 +1086,24 @@ if __name__ == "__main__":
     robotWatchdog = Watchdog('watchdog_clear/robot', 0.8);
     
     if(naoConnected):
+    
         from naoqi import ALBroker, ALProxy
-        #start speech (ROS isn't working..)
         port = 9559;
         myBroker = ALBroker("myBroker", #I'm not sure that pyrobots doesn't already have one of these open called NAOqi?
             "0.0.0.0",   # listen to anyone
             0,           # find a free port and use it
             NAO_IP,      # parent broker IP
             port)        # parent broker port
+        motionProxy = ALProxy("ALMotion", NAO_IP, port);
+
+        postureProxy = ALProxy("ALRobotPosture", NAO_IP, port)
         textToSpeech = ALProxy("ALTextToSpeech", NAO_IP, port)   
         textToSpeech.setLanguage(LANGUAGE)
         #textToSpeech.setVolume(1.0);
         if(naoWriting):
-            nao.setpose("StandInit");
-            [temp,joints_standInit] = nao.execute([naoqi_request("motion","getAngles",["RArm",True])]);
-            nao.execute([naoqi_request("motion","wbEnableEffectorControl",[effector,True])])
+            postureProxy.goToPosture("StandInit",0.8)
+            armJoints_standInit = motionProxy.getAngles(effector,True);
+            motionProxy.wbEnableEffectorControl(effector, True); #turn whole body motion control on
             
     #initialise word manager (passes feedback to shape learners and keeps history of words learnt)
     wordManager = ShapeLearnerManager(generateSettings);
