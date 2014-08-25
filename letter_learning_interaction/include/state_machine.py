@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+"""
+from http://www.ibm.com/developerworks/linux/library/l-python-state/index.html
+"""
+from string import upper
+class StateMachine:
+    """Class for managing state machines.
+    """
+    def __init__(self):
+        self.handlers = {}
+        self.startState = None
+        self.endStates = []
+        self.currentState = None
+
+    def add_state(self, name, handler, end_state=0):
+        name = upper(name)
+        self.handlers[name] = handler
+        if end_state:
+            self.endStates.append(name)
+
+    def set_start(self, name):
+        self.startState = upper(name)
+    
+    def get_state(self):
+        return self.currentState
+
+    def run(self, cargo):
+        try:
+            handler = self.handlers[self.startState]
+        except:
+            raise "InitializationError", "must call .set_start() before .run()"
+
+        if not self.endStates:
+            raise  "InitializationError", "at least one state must be an end_state"
+
+        while 1:
+            (newState, cargo) = handler(cargo)
+            self.currentState = upper(newState)
+            if self.currentState in self.endStates:
+                break
+            else:
+                handler = self.handlers[self.currentState]

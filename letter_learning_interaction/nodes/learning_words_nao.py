@@ -23,7 +23,7 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point, PointStamped
 from std_msgs.msg import String, Empty
 
-from shape_learning.state_machine import StateMachine
+from letter_learning_interaction.state_machine import StateMachine
 from copy import deepcopy
 drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER'];
 
@@ -1097,7 +1097,7 @@ if __name__ == "__main__":
     shape_subscriber = rospy.Subscriber(USER_DRAWN_SHAPES_TOPIC, Path, userShapePreprocessor); 
         
     #initialise display manager for shapes (manages positioning of shapes)
-    from shape_learning_interaction.srv import *
+    from letter_learning_interaction.srv import *
     print('Waiting for display manager services to become available');
     rospy.wait_for_service('clear_all_shapes');
     

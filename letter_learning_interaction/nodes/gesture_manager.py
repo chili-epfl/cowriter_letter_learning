@@ -2,12 +2,14 @@
 
 """
 Listens for gesture events on different topics and converts them into
-appropriate feedback messages for shape_learning.
+appropriate feedback messages for shape_learning interaction nodes.
 """
 
 import rospy
 from std_msgs.msg import String, Empty
 from geometry_msgs.msg import PointStamped
+
+from letter_learning_interaction.srv import *
 
 minTimeBetweenTouches = 0.1  #Seconds allowed between touches for the second one to be considered
 
@@ -139,7 +141,6 @@ if __name__ == "__main__":
     listenForAllGestures();
     
     #initialise display manager for shapes (manages positioning of shapes)
-    from shape_learning_interaction.srv import *
     rospy.wait_for_service('shape_at_location'); 
     rospy.wait_for_service('possible_to_display_shape'); 
 
