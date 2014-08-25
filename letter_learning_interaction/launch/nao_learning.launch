@@ -1,9 +1,17 @@
 <launch>
-    <arg name="nao_handedness" default="right" />
-    <arg name="nao_ip" default="127.0.0.1" />
-    <arg name="use_external_camera" default="true" />
-    <arg name="camera_device" default="/dev/video0" /> <!-- only used if using external camera -->
+    <arg name="use_robot_in_interaction" default="true" /> <!-- if false, robot-related commands will be skipped -->
     
+    <arg name="nao_ip" default="195.168.1.4" />
+    <arg name="use_sim_nao" default="true" /> <!-- if true, webots simulation expected to be running -->
+    <arg name="nao_ip_to_use" value="127.0.0.1" if="$(arg use_sim_nao)" /> <!-- look for local simulator -->
+    <arg name="nao_ip_to_use" value="$(arg nao_ip)" unless="$(arg use_sim_nao)" />
+
+    <arg name="nao_writing" default="true" /> <!-- if false, robot will not stand and move its arm to write -->
+    <arg name="nao_handedness" default="right" />    
+        
+    <arg name="use_external_camera" default="true" /> <!-- if false, camera on robot will be used -->
+    <arg name="camera_device" default="/dev/video0" /> <!-- only used if using external camera -->
+
     <!-- Language of interaction (french and english supported by nao) -->
     <arg name="language" default="english" />
     
@@ -39,22 +47,27 @@
 
 
     <!-- ##### END ARGUMENTS ##### -->  
-    
-    
-    <!-- Start the capabilities for the Nao to trace messages on a writing surface -->
-    <include file="$(find nao_trajectory_following)/launch/nao_writing_on_surface.launch" >
-        <arg name="nao_handedness" value="$(arg nao_handedness)" />
-        <arg name="nao_ip" value="$(arg nao_ip)"/>
-        <arg name="writing_surface_frame_id" value="$(arg writing_surface_frame_id)" /> 
-        <arg name="trajectory_visualization_input_topic" value="$(arg trajectory_visualization_topic)" />
-        <arg name="trajectory_nao_input_topic" value="$(arg trajectory_nao_topic)" />
-        <arg name="clear_writing_surface_topic" value="$(arg clear_writing_surface_topic)" />
-    </include>
+    <group if="$(arg use_robot_in_interaction)" >
+        <group if="$(arg nao_writing)">
+            <!-- Start the capabilities for the Nao to trace messages on a writing surface -->
+            <include file="$(find nao_trajectory_following)/launch/nao_writing_on_surface.launch" >
+                <arg name="use_sim_nao" value="$(arg use_sim_nao)" />
+                <arg name="nao_handedness" value="$(arg nao_handedness)" />
+                <arg name="nao_ip" value="$(arg nao_ip_to_use)"/>
+                <arg name="writing_surface_frame_id" value="$(arg writing_surface_frame_id)" /> 
+                <arg name="trajectory_visualization_input_topic" value="$(arg trajectory_visualization_topic)" />
+                <arg name="trajectory_nao_input_topic" value="$(arg trajectory_nao_topic)" />
+                <arg name="clear_writing_surface_topic" value="$(arg clear_writing_surface_topic)" />
+            </include>
+        </group>
+    </group> 
 
     <!-- Start the learning algorithm -->
     <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">
+        
+        <param name="use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
         <param name="language" type="str" value="$(arg language)"/>
-        <param name="nao_ip" type="str" value="$(arg nao_ip)"/>
+        <param name="nao_ip" type="str" value="$(arg nao_ip_to_use)"/>
         <param name="nao_handedness" type="str" value="$(arg nao_handedness)"/>
         <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
         <param name="writing_surface_frame_id" type="str" value="$(arg writing_surface_frame_id)"/>
@@ -82,7 +95,7 @@
     </group>
     <group unless="$(arg use_external_camera)">
         <include file="$(find nao_driver)/launch/nao_camera.launch">
-            <arg name="nao_ip" value="$(arg nao_ip)"/>
+            <arg name="nao_ip" value="$(arg nao_ip_to_use)"/>
         </include>
     </group>
     

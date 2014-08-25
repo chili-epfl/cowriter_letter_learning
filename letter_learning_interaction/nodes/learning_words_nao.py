@@ -32,9 +32,11 @@ rospy.init_node("learning_words_nao");
 
 #Nao parameters
 NAO_IP = rospy.get_param('~nao_ip','127.0.0.1'); #default behaviour is to connect to simulator locally
-naoConnected = True;
-naoSpeaking = True;
-naoWriting = True;
+naoSpeaking = rospy.get_param('~nao_speaking',True); #whether or not the robot should speak
+naoWriting = rospy.get_param('~nao_writing',True); #whether or not the robot should move its arms
+naoConnected = rospy.get_param('~use_robot_in_interaction',False); #whether or not the robot is being used for the interaction (looking, etc.)
+naoWriting = naoWriting and naoConnected; #use naoConnected var as the stronger property
+naoSpeaking = naoSpeaking and naoConnected;
 
 LANGUAGE = rospy.get_param('~language','english');
 NAO_HANDEDNESS = rospy.get_param('~nao_handedness','right')
@@ -122,13 +124,9 @@ if(naoWriting):
     t0 = 3;                 #Time allowed for the first point in traj (seconds)
     dt = 0.25               #Seconds between points in traj
     delayBeforeExecuting = 3;#How far in future to request the traj be executed (to account for transmission delays and preparedness)
-elif(naoConnected):
+else:
     t0 = 0.05;
     dt = 0.1;
-    delayBeforeExecuting = 3.5;
-else:
-    t0 = 0.7;
-    dt = 0.3;
     delayBeforeExecuting = 3.5;
 sizeScale_height = 0.035;    #Desired height of shape (metres)
 sizeScale_width = 0.023;     #Desired width of shape (metres)
