@@ -1,12 +1,9 @@
 <launch>
     <arg name="use_robot_in_interaction" default="true" /> <!-- if false, robot-related commands will be skipped -->
-    
-    <arg name="nao_ip" default="195.168.1.4" />
+    <arg name="nao_ip" default="195.168.1.4" /> <!-- IP address of non-simulated robot (ignored if simulated) -->
     <arg name="use_sim_nao" default="true" /> <!-- if true, webots simulation expected to be running -->
-    <arg name="nao_ip_to_use" value="127.0.0.1" if="$(arg use_sim_nao)" /> <!-- look for local simulator -->
-    <arg name="nao_ip_to_use" value="$(arg nao_ip)" unless="$(arg use_sim_nao)" />
 
-    <arg name="nao_writing" default="true" /> <!-- if false, robot will not stand and move its arm to write -->
+    <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
     <arg name="nao_handedness" default="right" />    
         
     <arg name="use_external_camera" default="true" /> <!-- if false, camera on robot will be used -->
@@ -44,6 +41,10 @@
     
     <arg name="camera_image_topic" value="v4l/camera/image_raw" if="$(arg use_external_camera)" />
     <arg name="camera_image_topic" value="/nao_camera/image_raw" unless="$(arg use_external_camera)" />
+
+    <rosparam param="/wait_to_sync_traj" subst_value="true">$(arg nao_writing)</rosparam> <!-- if using robot, tablet must wait to display at the same time as it -->
+    <arg name="nao_ip_to_use" value="127.0.0.1" if="$(arg use_sim_nao)" /> <!-- look for local simulator -->
+    <arg name="nao_ip_to_use" value="$(arg nao_ip)" unless="$(arg use_sim_nao)" />
 
 
     <!-- ##### END ARGUMENTS ##### -->  

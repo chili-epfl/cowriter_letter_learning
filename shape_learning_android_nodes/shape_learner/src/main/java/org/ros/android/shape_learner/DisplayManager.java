@@ -33,6 +33,7 @@ import org.ros.namespace.GraphName;
 import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.NodeMain;
+import org.ros.node.parameter.ParameterTree;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 
@@ -49,11 +50,13 @@ import std_msgs.*;
  */
 public class DisplayManager<T> extends ImageView implements NodeMain {
     private static final java.lang.String TAG = "DisplayManager";
-    private static final boolean SHOW_SHAPE_STRAIGHT_AWAY = true; //if using a simulated time, this should be true, so don't wait until the requested start time of shape
-  private String topicName;
-  private String messageType;
-  private MessageCallable<Bitmap, T> bitmapCallable;
-  private MessageCallable<Drawable, T> drawableCallable;
+    private static final boolean WAIT_TO_SYNC_TRAJ_DEFAULT = true; //if using a simulated time, this should be true, so don't wait until the requested start time of shape
+    private boolean WAIT_TO_SYNC_TRAJ;
+
+    private String topicName;
+    private String messageType;
+    private MessageCallable<Bitmap, T> bitmapCallable;
+    private MessageCallable<Drawable, T> drawableCallable;
 
     private String clearScreenTopicName;
     private MessageCallable<Integer, Integer> clearScreenCallable;
@@ -105,8 +108,12 @@ public class DisplayManager<T> extends ImageView implements NodeMain {
 
   @Override
   public void onStart(final ConnectedNode connectedNode) {
-    Subscriber<T> subscriber = connectedNode.newSubscriber(topicName, messageType);
-    subscriber.addMessageListener(new MessageListener<T>() {
+      ParameterTree param = connectedNode.getParameterTree();
+      WAIT_TO_SYNC_TRAJ = param.getBoolean("wait_to_sync_traj", WAIT_TO_SYNC_TRAJ_DEFAULT);
+      Log.e(TAG, "ROSparam for wait_to_sync_traj exists on server: " + Boolean.toString(param.has("wait_to_sync_traj")));
+
+      Subscriber<T> subscriber = connectedNode.newSubscriber(topicName, messageType);
+      subscriber.addMessageListener(new MessageListener<T>() {
       @Override
       public void onNewMessage(final T message) {
         if (bitmapCallable != null) {
@@ -154,10 +161,10 @@ public class DisplayManager<T> extends ImageView implements NodeMain {
                         }
                     }
 
-
+                    // wait until appropriate time to start animation
                     if(message instanceof nav_msgs.Path){ // this does not belong in this class
                         Duration delay = ((Path) message).getHeader().getStamp().subtract(connectedNode.getCurrentTime());
-                        if(!SHOW_SHAPE_STRAIGHT_AWAY){
+                        if(WAIT_TO_SYNC_TRAJ){
                             try{Thread.sleep(Math.round(delay.totalNsecs() / 1000000.0));}
                             catch(InterruptedException e){
                                 Log.e(TAG, "InterruptedException: " + e.getMessage());
@@ -168,7 +175,8 @@ public class DisplayManager<T> extends ImageView implements NodeMain {
                         }
                         Log.e(TAG, "executing message at " + connectedNode.getCurrentTime().toString());
                     }
-                    drawable.start();
+
+                    drawable.start(); //start animation (and call callback when finished)
                 }
             });
 
