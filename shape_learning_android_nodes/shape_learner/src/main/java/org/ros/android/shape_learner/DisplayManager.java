@@ -52,6 +52,7 @@ public class DisplayManager<T> extends ImageView implements NodeMain {
     private static final java.lang.String TAG = "DisplayManager";
     private static final boolean WAIT_TO_SYNC_TRAJ_DEFAULT = true; //if using a simulated time, this should be true, so don't wait until the requested start time of shape
     private boolean WAIT_TO_SYNC_TRAJ;
+    private double DISPLAY_RATE = 0.0;
 
     private String topicName;
     private String messageType;
@@ -101,6 +102,12 @@ public class DisplayManager<T> extends ImageView implements NodeMain {
      */
     public void setClearScreenCallable(MessageCallable<Integer, Integer > callable) { this.clearScreenCallable = callable; }
 
+  public double getDisplayRate(){
+      while(this.DISPLAY_RATE == 0.0);
+      Log.e(TAG, "Returning value of display rate of " + Double.toString(DISPLAY_RATE));
+      return this.DISPLAY_RATE;
+  }
+
     @Override
   public GraphName getDefaultNodeName() {
     return GraphName.of("ros_image_view");
@@ -111,6 +118,9 @@ public class DisplayManager<T> extends ImageView implements NodeMain {
       ParameterTree param = connectedNode.getParameterTree();
       WAIT_TO_SYNC_TRAJ = param.getBoolean("wait_to_sync_traj", WAIT_TO_SYNC_TRAJ_DEFAULT);
       Log.e(TAG, "ROSparam for wait_to_sync_traj exists on server: " + Boolean.toString(param.has("wait_to_sync_traj")));
+
+      DISPLAY_RATE = param.getDouble("display_rate", 1.0);
+      Log.e(TAG, "ROSparam for display_rate exists on server: " + Boolean.toString(param.has("display_rate")));
 
       Subscriber<T> subscriber = connectedNode.newSubscriber(topicName, messageType);
       subscriber.addMessageListener(new MessageListener<T>() {

@@ -77,6 +77,7 @@ public class MainActivity extends RosActivity {
     private boolean longClicked = true;
     private int timeBetweenWatchdogClears_ms = 100;
     private boolean replayingUserShapes = false;
+    private double displayRate;
     public MainActivity() {
     // The RosActivity constructor configures the notification title and ticker
     // messages.
@@ -149,7 +150,7 @@ public class MainActivity extends RosActivity {
             trajPath.moveTo((float) (M2PX(points.get(0).getPose().getPosition().getX()) + shapeCentre_offset[0]), resolution_tablet[1] - (float) (M2PX(points.get(0).getPose().getPosition().getY()) + shapeCentre_offset[1]));
 
             long timeUntilFirstFrame_msecs = Math.round(points.get(0).getHeader().getStamp().totalNsecs() / 1000000.0);
-            animationDrawable.addFrame(blankShapeDrawable, (int) (timeUntilFirstFrame_msecs/rate));
+            animationDrawable.addFrame(blankShapeDrawable, (int) (timeUntilFirstFrame_msecs/displayRate));
             int totalTime = (int)timeUntilFirstFrame_msecs;
 
             for (int i = 0; i < points.size() - 1; i++) //special case for last point/frame of trajectory
@@ -171,7 +172,7 @@ public class MainActivity extends RosActivity {
                 Duration frameDuration = points.get(i + 1).getHeader().getStamp().subtract(p.getHeader().getStamp()); // take difference between times to get appropriate duration for frame to be displayed
 
                 long dt_msecs = Math.round(frameDuration.totalNsecs() / 1000000.0);
-                animationDrawable.addFrame(shapeDrawable, (int) (dt_msecs/rate)); //unless the duration is over 2mil seconds the cast is ok
+                animationDrawable.addFrame(shapeDrawable, (int) (dt_msecs/displayRate)); //unless the duration is over 2mil seconds the cast is ok
                 totalTime+=(int)dt_msecs;
             }
             //cover end case
@@ -185,7 +186,7 @@ public class MainActivity extends RosActivity {
 
             if (timeoutDuration_mSecs >= 0)//only display the last frame until timeoutDuration has elapsed
             {
-                animationDrawable.addFrame(shapeDrawable, (int) (timeoutDuration_mSecs/rate));
+                animationDrawable.addFrame(shapeDrawable, (int) (timeoutDuration_mSecs/displayRate));
                 animationDrawable.addFrame(blankShapeDrawable, 0); //stop displaying
             } else { //display last frame indefinitely
                 //don't add an extra frame unless necessary because otherwise it will delay the animationFinished message!
@@ -388,7 +389,7 @@ private double PX2M(double x){return PX2MM(x)/1000.0;}
         displayManager.setClearScreenTopicName("clear_screen");
         displayManager.setClearWatchdogTopicName("watchdog_clear/tablet");
         displayManager.setFinishedShapeTopicName("shape_finished");
-        interactionManager.setUserDrawnShapeTopicName("user_shapes");
+        interactionManager.setUserDrawnShapeTopicName("user_drawn_shapes");
 
         NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress());
     // At this point, the user has already been prompted to either enter the URI
@@ -412,7 +413,9 @@ private double PX2M(double x){return PX2MM(x)/1000.0;}
     nodeMainExecutor.execute(displayManager, nodeConfiguration.setNodeName("android_gingerbread/display_manager"));
     nodeMainExecutor.execute(interactionManager, nodeConfiguration.setNodeName("android_gingerbread/interaction_manager"));
         }
-  }
+        displayRate = displayManager.getDisplayRate(); //read value that node got from rosparam server
+
+    }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
