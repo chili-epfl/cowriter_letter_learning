@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -86,19 +87,17 @@ public class MainActivity extends RosActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-      Log.e(TAG,String.valueOf(Build.VERSION.SDK_INT));
-     // if (Build.VERSION.SDK_INT < 16) {
-          getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                  WindowManager.LayoutParams.FLAG_FULLSCREEN);
-          Log.e(TAG,"Should be fullscreen now");
-      //}
+      requestWindowFeature(Window.FEATURE_NO_TITLE); //remove title bar with app's icon and name
+      getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+        WindowManager.LayoutParams.FLAG_FULLSCREEN); //remove bar with notifications and battery level etc
+      Log.e(TAG,"Should be fullscreen now");
+
       setContentView(R.layout.main);
       buttonClear = (Button)findViewById(R.id.buttonClear);
       buttonClear.setOnClickListener(clearListener); // Register the onClick listener with the implementation below
       buttonSend = (ImageButton)findViewById(R.id.buttonSend);
       buttonSend.setOnClickListener(sendListener); // Register the onClick listener with the implementation below
 
-      final double rate = 1.0;
       startWatchdogClearer();
 
       //for collecting user demonstrations
