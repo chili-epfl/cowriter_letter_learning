@@ -34,7 +34,7 @@ rospy.init_node("learning_words_nao");
 NAO_IP = rospy.get_param('~nao_ip','127.0.0.1'); #default behaviour is to connect to simulator locally
 naoSpeaking = rospy.get_param('~nao_speaking',True); #whether or not the robot should speak
 naoWriting = rospy.get_param('~nao_writing',True); #whether or not the robot should move its arms
-naoConnected = rospy.get_param('~use_robot_in_interaction',False); #whether or not the robot is being used for the interaction (looking, etc.)
+naoConnected = rospy.get_param('~use_robot_in_interaction',True); #whether or not the robot is being used for the interaction (looking, etc.)
 naoWriting = naoWriting and naoConnected; #use naoConnected var as the stronger property
 naoSpeaking = naoSpeaking and naoConnected;
 
@@ -56,7 +56,7 @@ SHAPE_TOPIC_DOWNSAMPLED = rospy.get_param('~trajectory_output_nao_topic','/write
 #tablet params        
 CLEAR_SURFACE_TOPIC = rospy.get_param('~clear_writing_surface_topic','clear_screen');
 SHAPE_FINISHED_TOPIC = rospy.get_param('~shape_writing_finished_topic','shape_finished');
-USER_DRAWN_SHAPES_TOPIC = rospy.get_param('~user_drawn_shapes_topic','user_shapes');
+USER_DRAWN_SHAPES_TOPIC = rospy.get_param('~user_drawn_shapes_topic','user_drawn_shapes');
 GESTURE_TOPIC = rospy.get_param('~gesture_info_topic','gesture_info');
 
 #interaction params
@@ -118,16 +118,16 @@ learningModes = {'c': LearningModes.startsRandom,
                 'u': LearningModes.startsRandom,
                 'w': LearningModes.startsRandom}; 
 
-
+delayBeforeExecuting = 2.5;
 #trajectory publishing parameters
 if(naoWriting):
     t0 = 3;                 #Time allowed for the first point in traj (seconds)
     dt = 0.25               #Seconds between points in traj
     delayBeforeExecuting = 3;#How far in future to request the traj be executed (to account for transmission delays and preparedness)
 else:
-    t0 = 0.05;
+    t0 = 0.01;
     dt = 0.1;
-    delayBeforeExecuting = 3.5;
+    delayBeforeExecuting = 2.5;
 sizeScale_height = 0.035;    #Desired height of shape (metres)
 sizeScale_width = 0.023;     #Desired width of shape (metres)
 numDesiredShapePoints = 7.0;#Number of points to downsample the length of shapes to 
@@ -872,7 +872,6 @@ def startInteraction(infoFromPrevState):
 
 def onWordReceived(message):
     global wordReceived 
-
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
     or stateMachine.get_state() == "WAITING_FOR_WORD"
     or stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
@@ -1047,6 +1046,27 @@ if __name__ == "__main__":
     if(args.show):
         plt.ion(); #to plot one shape at a time
     '''
+    
+    stateMachine = StateMachine();
+    stateMachine.add_state("STARTING_INTERACTION", startInteraction);
+    stateMachine.add_state("WAITING_FOR_ROBOT_TO_CONNECT", waitForRobotToConnect);
+    stateMachine.add_state("WAITING_FOR_WORD", waitForWord);
+    stateMachine.add_state("RESPONDING_TO_NEW_WORD", respondToNewWord);
+    stateMachine.add_state("PUBLISHING_WORD", publishWord);
+    stateMachine.add_state("PUBLISHING_LETTER", publishShape);
+    stateMachine.add_state("WAITING_FOR_LETTER_TO_FINISH", waitForShapeToFinish);
+    stateMachine.add_state("ASKING_FOR_FEEDBACK", askForFeedback);
+    stateMachine.add_state("WAITING_FOR_FEEDBACK", waitForFeedback);
+    stateMachine.add_state("RESPONDING_TO_FEEDBACK", respondToFeedback);
+    stateMachine.add_state("RESPONDING_TO_DEMONSTRATION", respondToDemonstration);
+    stateMachine.add_state("RESPONDING_TO_TEST_CARD", respondToTestCard);
+    #stateMachine.add_state("RESPONDING_TO_TABLET_DISCONNECT", respondToTabletDisconnect);
+    stateMachine.add_state("WAITING_FOR_TABLET_TO_CONNECT", waitForTabletToConnect);
+    stateMachine.add_state("STOPPING", stopInteraction);
+    stateMachine.add_state("EXIT", None, end_state=True);
+    stateMachine.set_start("WAITING_FOR_ROBOT_TO_CONNECT");
+    infoForStartState = {'state_goTo': ["STARTING_INTERACTION"], 'state_cameFrom': None};
+    
     #subscribe to feedback topic with a feedback manager which will pass messages to appropriate shapeLearners
     #feedback_subscriber = rospy.Subscriber(FEEDBACK_TOPIC, String, onFeedbackReceived);
     
@@ -1107,25 +1127,6 @@ if __name__ == "__main__":
     wordManager = ShapeLearnerManager(generateSettings);
             
     
-    stateMachine = StateMachine();
-    stateMachine.add_state("STARTING_INTERACTION", startInteraction);
-    stateMachine.add_state("WAITING_FOR_ROBOT_TO_CONNECT", waitForRobotToConnect);
-    stateMachine.add_state("WAITING_FOR_WORD", waitForWord);
-    stateMachine.add_state("RESPONDING_TO_NEW_WORD", respondToNewWord);
-    stateMachine.add_state("PUBLISHING_WORD", publishWord);
-    stateMachine.add_state("PUBLISHING_LETTER", publishShape);
-    stateMachine.add_state("WAITING_FOR_LETTER_TO_FINISH", waitForShapeToFinish);
-    stateMachine.add_state("ASKING_FOR_FEEDBACK", askForFeedback);
-    stateMachine.add_state("WAITING_FOR_FEEDBACK", waitForFeedback);
-    stateMachine.add_state("RESPONDING_TO_FEEDBACK", respondToFeedback);
-    stateMachine.add_state("RESPONDING_TO_DEMONSTRATION", respondToDemonstration);
-    stateMachine.add_state("RESPONDING_TO_TEST_CARD", respondToTestCard);
-    #stateMachine.add_state("RESPONDING_TO_TABLET_DISCONNECT", respondToTabletDisconnect);
-    stateMachine.add_state("WAITING_FOR_TABLET_TO_CONNECT", waitForTabletToConnect);
-    stateMachine.add_state("STOPPING", stopInteraction);
-    stateMachine.add_state("EXIT", None, end_state=True);
-    stateMachine.set_start("WAITING_FOR_ROBOT_TO_CONNECT");
-    infoForStartState = {'state_goTo': ["STARTING_INTERACTION"], 'state_cameFrom': None};
     '''
     wordToLearn = args.word;
     if(wordToLearn is not None):
