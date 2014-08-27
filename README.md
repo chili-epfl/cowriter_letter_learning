@@ -20,7 +20,17 @@ roslaunch letter_learning_interaction nao_learning.launch
 ####With a [ROS-enabled Nao](https://github.com/ros-nao/nao_robot):
 (With the `shape_learner` app deployed on the tablet and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/tags5-9_wordgame_robotWriting.pdf) printed (robot's camera will be used))
 
+Install chrony on the computer so that the robot may sync its clock.
+
 On the robot:
+
+```
+sudo /etc/init.d/ntpd stop
+sudo ntpdate (computer's IP)
+sudo /etc/init.d/ntpd start
+```
+
+`ntpdate -q (computer's IP)` should then give ~0 offset, indicating that the clocks are synchronised.
 
 ```
 export ROS_MASTER_URI=http://(computer's IP):11311
@@ -36,11 +46,10 @@ roslaunch letter_learning_interaction nao_learning.launch use_sim_nao:=false nao
 Dependencies
 ------------
 - [shape_learning](https://github.com/chili-epfl/shape_learning) for the letter learning algorithm,
-- [naoqi SDK](https://community.aldebaran.com/resources/archives/) for motion control, 
-- [nao_robot](https://github.com/ros-nao/nao_robot) for TF frames of the robot, 
+- [nao_writing](https://github.com/chili-epfl/nao_writing) for the synchronised trajectory tracing capabilities for the robot,
 - [ROS for Android](https://github.com/rosjava/rosjava_core) for the tablet app,
 - (optional) [ros_markers](https://github.com/chili-epfl/ros_markers) for detecting the word cards,
 - (optional) [gscam](https://github.com/ros-drivers/gscam) for using an external webcam to detect word cards.
 
-For more information see the readmes in internal directories and the parameters which are available for specification in the launch files.
+For more information, see the readmes in internal directories and the parameters which are available for specification in the launch files.
 
