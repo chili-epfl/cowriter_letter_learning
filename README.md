@@ -7,7 +7,20 @@ A set of ROS nodes which facilitate the user interaction allowing a robot to be 
 *An example result of the interaction achievable with cowriter_letter_learning: Words are requested by showing cards to the robot with [chilitags](https://github.com/chili-epfl/chilitags) on them; children correct the robot's [simulated handwriting](https://github.com/chili-epfl/nao_writing) by providing demonstrations on a tablet, which are used to update the robot's [shape learning algorithm](https://github.com/chili-epfl/shape_learning).*
 
 ##Usage
-####With a webots simulated Nao running:
+####With only a tablet
+(With the `shape_learner` app deployed on the tablet)
+
+```
+roslaunch letter_learning_interaction nao_learning.launch use_robot_in_interaction:=false
+```
+
+`rostopic pub /words_to_write std_msgs/String "use" -1` to send words to write (e.g. 'use') manually.
+
+![Photo of word learning app progress (initial).](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/cow_initial.png)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Photo of word learning app progress (final).](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/cow_final.png)
+
+*An example of the system learning the word 'cow' (blue) based on user demonstrations with the tablet (green).*
+
+####With a webots simulated Nao running
 
 (With the `shape_learner` app deployed on the tablet, a webcam plugged in, and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/tags5-9_wordgame_robotWriting.pdf) printed)
 
@@ -15,9 +28,9 @@ A set of ROS nodes which facilitate the user interaction allowing a robot to be 
 roslaunch letter_learning_interaction nao_learning.launch
 ```
 
+*(The camera device may be specified by appending `camera_device:=/dev/video1`, for example.)*
 *(Alternatively, `rostopic pub /words_to_write std_msgs/String "use" -1` may be used to send words to write (e.g. 'use') manually, without detecting cards.)*
-
-####With a [ROS-enabled Nao](https://github.com/ros-nao/nao_robot):
+####With a [ROS-enabled Nao](https://github.com/ros-nao/nao_robot)
 (With the `shape_learner` app deployed on the tablet and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/tags5-9_wordgame_robotWriting.pdf) printed (robot's camera will be used))
 
 Install chrony on the computer so that the robot may sync its clock.
