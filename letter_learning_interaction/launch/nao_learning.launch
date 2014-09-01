@@ -64,7 +64,7 @@
     </group> 
 
     <!-- Start the learning algorithm -->
-    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">
+    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao" required="true">
         
         <param name="use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
         <param name="language" type="str" value="$(arg language)"/>
@@ -95,7 +95,7 @@
         </include>
     </group>
     <group unless="$(arg use_external_camera)">
-        <include file="$(find nao_driver)/launch/nao_camera.launch">
+        <include file="$(find nao_trajectory_following)/launch/nao_camera_controllable.launch">
             <arg name="nao_ip" value="$(arg nao_ip_to_use)"/>
         </include>
     </group>
