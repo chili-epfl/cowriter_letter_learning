@@ -875,6 +875,7 @@ def onWordReceived(message):
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
     or stateMachine.get_state() == "WAITING_FOR_WORD"
     or stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
+    or stateMachine.get_state() == "STARTING_INTERACTION"
     or stateMachine.get_state() is None): #state machine hasn't started yet - word probably came from input arguments
         wordReceived = message;
         print('Received word');
