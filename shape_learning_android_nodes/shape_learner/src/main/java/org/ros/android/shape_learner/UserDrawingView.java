@@ -18,11 +18,12 @@ import org.ros.android.MessageCallable;
 import java.util.ArrayList;
 
 /**
+ * View for capturing input from stylus and/or fingertip drawings.
  * from http://corner.squareup.com/2010/07/smooth-signatures.html apache 2.0 license
  * Modified by deanna on 7/05/14.
  */
-public class SignatureView extends View {
-    private static final java.lang.String TAG = "SignatureView";
+public class UserDrawingView extends View {
+    private static final java.lang.String TAG = "UserDrawingView";
     private MessageCallable<Integer, ArrayList<double[]> > stylusStrokeFinishedCallable;
     private MessageCallable<Integer, ArrayList<double[]> > fingerStrokeFinishedCallable;
     private boolean respondToFinger = false;
@@ -43,7 +44,7 @@ public class SignatureView extends View {
     private float lastTouchY;
     private final RectF dirtyRect = new RectF();
 
-    public SignatureView(Context context, AttributeSet attrs) {
+    public UserDrawingView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         paint.setAntiAlias(true);
@@ -242,12 +243,12 @@ public class SignatureView extends View {
     }
 
     public void requestClear(){
-    post(new Runnable() {
-        @Override
-        public void run() {
-            clear();
-        }
-    });
-}
+        post(new Runnable() {
+            @Override
+            public void run() {
+                clear();
+            }
+        });
+    }
 }
 

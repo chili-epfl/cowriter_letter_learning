@@ -28,7 +28,7 @@ import nav_msgs.Path;
 import std_msgs.Empty;
 
 /**
- * Publishes touch events.
+ * ROS node for capturing and publishing user interactions.
  *
  * @author Deanna Hood
  */
@@ -58,12 +58,12 @@ class InteractionManager extends AbstractNodeMain {
 
     @Override
     public GraphName getDefaultNodeName() {
-        return GraphName.of("touch_publisher");
+        return GraphName.of("interaction_publisher");
     }
 
     @Override
     public void onStart(final ConnectedNode connectedNode) {
-         this.connectedNode = connectedNode;
+        this.connectedNode = connectedNode;
         this.touchInfoPublisher =
                 connectedNode.newPublisher(touchInfoTopicName, geometry_msgs.PointStamped._TYPE);
         this.touchInfoPublisher.setLatchMode(false);
@@ -77,16 +77,16 @@ class InteractionManager extends AbstractNodeMain {
 
     }
 
-  public void publishTouchInfoMessage(double x, double y) {
+    public void publishTouchInfoMessage(double x, double y) {
 
-    geometry_msgs.PointStamped pointStamped = touchInfoPublisher.newMessage();
-      pointStamped.getHeader().setStamp(connectedNode.getCurrentTime());
-      pointStamped.getPoint().setX(x);
-      pointStamped.getPoint().setY(y);
+        geometry_msgs.PointStamped pointStamped = touchInfoPublisher.newMessage();
+        pointStamped.getHeader().setStamp(connectedNode.getCurrentTime());
+        pointStamped.getPoint().setX(x);
+        pointStamped.getPoint().setY(y);
 
-      touchInfoPublisher.publish(pointStamped);
+        touchInfoPublisher.publish(pointStamped);
 
-  }
+    }
     public void publishGestureInfoMessage(double x, double y) {
 
         geometry_msgs.PointStamped pointStamped = gestureInfoPublisher.newMessage();
@@ -97,6 +97,7 @@ class InteractionManager extends AbstractNodeMain {
         gestureInfoPublisher.publish(pointStamped);
 
     }
+
     public void publishClearScreenMessage(){
         Log.e(TAG, "Publishing clear screen request");
         Empty message = clearScreenPublisher.newMessage();
