@@ -987,7 +987,8 @@ def waitForRobotToConnect(infoFromPrevState):
     nextState = "WAITING_FOR_ROBOT_TO_CONNECT";
     infoForNextState = {'state_cameFrom': "WAITING_FOR_ROBOT_TO_CONNECT"};
     
-    if(robotWatchdog.isResponsive() or not naoConnected):
+    #if(robotWatchdog.isResponsive() or not naoConnected):
+    if(True):
         infoForNextState = infoToRestore_waitForRobotToConnect;
         try:
             nextState = infoForNextState['state_goTo'].pop(0);
