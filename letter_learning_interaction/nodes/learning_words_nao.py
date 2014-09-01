@@ -462,19 +462,19 @@ def generateSettings(shapeType):
 
 def lookAtTablet():
     if(effector=="RArm"):   #tablet will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.2, 0.08125996589660645],0.8);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.2, 0.08125996589660645],0.2);
     else: 
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.2, 0.08125996589660645],0.8);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.2, 0.08125996589660645],0.2);
     
 def lookAndAskForFeedback(toSay,side):
     if(naoWriting):
         #put arm down
-        motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.8)
+        motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.3)
     
     if(side=="Right"):   #person will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.9639739513397217, 0.08125996589660645],0.8);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.9639739513397217, 0.08125996589660645],0.2);
     else:                   #person will be on our left
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.9639739513397217, 0.08125996589660645],0.8);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.9639739513397217, 0.08125996589660645],0.2);
         
     if(naoSpeaking):
         textToSpeech.say(toSay);
@@ -1119,7 +1119,7 @@ if __name__ == "__main__":
         textToSpeech.setLanguage(LANGUAGE)
         #textToSpeech.setVolume(1.0);
         if(naoWriting):
-            postureProxy.goToPosture("StandInit",0.8)
+            postureProxy.goToPosture("StandInit",0.2)
             armJoints_standInit = motionProxy.getAngles(effector,True);
             motionProxy.wbEnableEffectorControl(effector, True); #turn whole body motion control on
             
