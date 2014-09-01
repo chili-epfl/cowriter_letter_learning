@@ -21,6 +21,7 @@ if __name__=="__main__":
                       'tag_17':'test','tag_18':'stop' #special tags
                           };
     elif(LANGUAGE.lower() == 'french'):
+        #warning: tag 14 is prone to false positives!!
         tags_words_mapping = {'tag_10':'cou','tag_11':'son','tag_12':'ces','tag_13':'une',
                       'tag_14':'sec','tag_15':'nos','tag_16':'ose',#'tag_17':'sac','tag_18':'eau', #french words
                       'tag_17':'test','tag_18':'stop' #special tags
