@@ -12,10 +12,10 @@ import math
 import pdb
 import matplotlib.pyplot as plt
 import time
-from enum import Enum 
+
+from letter_learning_interaction.interaction_settings import InteractionSettings
 
 from shape_learning.shape_learner_manager import ShapeLearnerManager
-from shape_learning.shape_learner import SettingsStruct
 from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight()
 
 import rospy
@@ -64,59 +64,24 @@ WORDS_TOPIC = rospy.get_param('~words_to_write_topic','words_to_write');
 TEST_TOPIC = rospy.get_param('~test_request_topic','test_learning');#Listen for when test card has been shown to the robot
 STOP_TOPIC = rospy.get_param('~stop_request_topic','stop_learning');#Listen for when stop card has been shown to the robot
 NEW_CHILD_TOPIC = rospy.get_param('~new_teacher_topic','new_child');#Welcome a new teacher but don't reset learning algorithm's 'memory'
-
+personSide = rospy.get_param('~person_side', NAO_HANDEDNESS.lower()); #side where person is (left/right)
 PUBLISH_STATUS_TOPIC = rospy.get_param('~camera_publishing_status_topic','camera_publishing_status'); #Controls the camera based on the interaction state (turn it off for writing b/c CPU gets maxed)
-        
-        
-alternateSidesLookingAt = False; #if true, nao will look to a different side each time. 
+
+alternateSidesLookingAt = False; #if true, nao will look to a different side each time. (not super tested)
 global nextSideToLookAt
 nextSideToLookAt = 'Right';
 
-if(LANGUAGE.lower()=='english'):
-    introPhrase = "Hello. I'm Nao. Please show me a word to practice.";
-    demo_responses = ["Okay, I'll try it like you", "So that's how you write %s", "That's a much better %s than mine", "I'll try to copy you","Let me try now","Thank you"];
-    asking_phrases_after_feedback = ["Any better?", "How about now?", "Now what do you think?","Is there a difference?", "Is this one okay?", "Will you show me how?", "Did I improve?"];
-    asking_phrases_after_word = ["Okay, what do you think?", "This is a hard word", "Is this how you write it?","Please help me"];
-    word_responses = ["%s, okay. ", "%s seems like a good word", "Hopefully I can do well with this word", "%s. Let's try", "Okay, %s now"];
-    word_responses_again = ["%s again, okay.", "I thought I already did %s", "You like to practice this word"];
-    testPhrase = "Ok, test time. I'll try my best.";
-    thankYouPhrase = 'Thank you for your help.';
-elif(LANGUAGE.lower()=='french'):
-    introPhrase = "Bonjour, je m'appelle Nao. Peux-tu me montrer un mot ?";
-    demo_responses = ["D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Ce %s est pas mal", "Bon, j'essaye comme toi", "Ok, à moi", "À mon tour", "Merci, je vais essayer"];
-    asking_phrases_after_feedback = ["C'est mieux ?", "Et comme ça ?", "Tu en penses quoi ?", "Qu'est-ce que tu en penses ?", "Il y a une différence ?", "Ça va cette fois ?", "Je me suis amélioré ?", "Tu trouves que c'est mieux ?"];
-    asking_phrases_after_word = ["Bon, qu'est ce que tu en penses ?", "Pas facile !", "C'est bien comme ça ?", "Je crois que j'ai besoin d'aide.", "Et voilà !"];
-    word_responses = ["D'accord pour %s", "Ok, j'essaye %s", "Bon, je devrais y arriver", "D'accord", "%s ? ok"];
-    word_responses_again = ["Encore %s ? bon, d'accord.", "Je crois que j'ai déjà fait %s", "On dirait que tu aimes bien %s !", "Encore ?"];
-    testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
-    thankYouPhrase = "Merci pour ton aide !";
-else:
-    raise RuntimeError("Language not available");
-    
-demo_responses_counter = 0;
+#initialise of arrays of phrases to say at relevant times
+introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase = InteractionSettings.getPhrases(LANGUAGE);
+
+demo_response_phrases_counter = 0;
 asking_phrases_after_feedback_counter = 0;
 asking_phrases_after_word_counter = 0;
-word_responses_counter = 0;
-word_responses_again_counter = 0;
-    
-#shape learning parameters
-simulatedFeedback = False;  #Simulate user feedback as whichever shape is closest to goal parameter value
-boundExpandingAmount = 0.2; #How much to expand the previously-learnt parameter bounds by when the letter comes up again @TODO should be relative to parameter sensitivity
-numItersBeforeConsideredStuck = 1; #After how long should we consider that the user is stuck in a sub-optimal convergence?
-class LearningModes(Enum):
-    alwaysGood = 0;
-    startsBad = 1;
-    alwaysBad = 2;
-    startsRandom = 3;
-#define the learning mode for each shape we expect to see
-learningModes = {'c': LearningModes.startsRandom,
-                'e': LearningModes.startsRandom,
-                'm': LearningModes.startsRandom,
-                'n': LearningModes.startsRandom,
-                'o': LearningModes.startsRandom,
-                's': LearningModes.startsRandom,
-                'u': LearningModes.startsRandom,
-                'w': LearningModes.startsRandom}; 
+word_response_phrases_counter = 0;
+word_again_response_phrases_counter = 0;
+
+#get appropriate angles for looking at things
+headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles();
 
 delayBeforeExecuting = 2.5;
 #trajectory publishing parameters
@@ -128,14 +93,11 @@ else:
     t0 = 0.01;
     dt = 0.1;
     delayBeforeExecuting = 2.5;
-sizeScale_height = 0.035;    #Desired height of shape (metres)
-sizeScale_width = 0.023;     #Desired width of shape (metres)
+sizeScale_height = 0.035;    #Desired height of shape (metres) (because of grid used by shape_display_manager)
+sizeScale_width = 0.023;     #Desired width of shape (metres) (@todo this should be set by shape_display_manager)
 numDesiredShapePoints = 7.0;#Number of points to downsample the length of shapes to 
-numPoints_shapeModeler = 70; #Number of points used by ShapeModelers
+numPoints_shapeModeler = 70; #Number of points used by ShapeModelers (@todo this could vary for each letter)
 
-#tablet parameters
-tabletConnected = True;      #If true, will wait for shape_finished notification before proceeding to the next shape (rather than a fixed delay)
-minTimeBetweenTouches = 0.1  #Seconds allowed between touches for the second one to be considered
 
 from std_msgs.msg import Bool
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool);
@@ -315,14 +277,14 @@ def respondToDemonstration(infoFromPrevState):
     '''
     shapeType = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor);
     if(naoSpeaking):
-        global demo_responses_counter
+        global demo_response_phrases_counter
         try:
-            toSay = demo_responses[demo_responses_counter]%shapeType;
+            toSay = demo_response_phrases[demo_response_phrases_counter]%shapeType;
         except TypeError:
-            toSay = demo_responses[demo_responses_counter];
-        demo_responses_counter += 1;
-        if(demo_responses_counter==len(demo_responses)):
-            demo_responses_counter = 0;
+            toSay = demo_response_phrases[demo_response_phrases_counter];
+        demo_response_phrases_counter += 1;
+        if(demo_response_phrases_counter==len(demo_response_phrases)):
+            demo_response_phrases_counter = 0;
         textToSpeech.say(toSay);
         print('NAO: '+toSay);  
     
@@ -484,15 +446,6 @@ def onShapeFinished(message):
     global shapeFinished;
     shapeFinished = True; #TODO only register when appropriate
                
-### ----------------------------------------- PUBLISH SIMULATED FEEDBACK    
-def publishSimulatedFeedback(bestShape_index, shapeType_index, doGroupwiseComparison):           
-        feedback = String();
-        if(doGroupwiseComparison):
-            feedback.data = str(shapeType_index) + '_' + str(bestShape_index);
-        else:
-            names = ('old', 'new');
-            feedback.data = names[bestShape_index];            
-        onFeedbackReceived(feedback);
         
 ### ------------------------------------------------------ PUBLISH SHAPE        
 def publishShape(infoFromPrevState):
@@ -500,32 +453,23 @@ def publishShape(infoFromPrevState):
     shapesToPublish = infoFromPrevState['shapesToPublish'];
     shape = shapesToPublish.pop(0); #publish next remaining shape (and remove from list)
 
-    if(simulatedFeedback):
-        '''
-        if(args.show):
-            plt.figure(1);
-            ShapeModeler.normaliseAndShowShape(shape.path);
-            time.sleep(1.3); 
-        '''
-    else:
-       
-        try:
-            display_new_shape = rospy.ServiceProxy('display_new_shape', displayNewShape);
-            response = display_new_shape(shape_type_code = shape.shapeType_code);
-            shapeCentre = numpy.array([response.location.x, response.location.y]);
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
-        
-        headerString = shape.shapeType+'_'+str(shape.paramsToVary)+'_'+str(shape.paramValues);
-        [traj_downsampled, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, t0, True, dt); #for robot
-        downsampleFactor = float(numPoints_shapeModeler-1)/float(numDesiredShapePoints-1);
-        traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, float(dt)/downsampleFactor);
-        #traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, dt);
-        trajStartPosition = traj.poses[0].pose.position;
-        if(naoConnected):
-            lookAtTablet();
-        pub_traj_downsampled.publish(traj_downsampled);
-        pub_traj.publish(traj);
+    try:
+        display_new_shape = rospy.ServiceProxy('display_new_shape', displayNewShape);
+        response = display_new_shape(shape_type_code = shape.shapeType_code);
+        shapeCentre = numpy.array([response.location.x, response.location.y]);
+    except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+    
+    headerString = shape.shapeType+'_'+str(shape.paramsToVary)+'_'+str(shape.paramValues);
+    [traj_downsampled, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, t0, True, dt); #for robot
+    downsampleFactor = float(numPoints_shapeModeler-1)/float(numDesiredShapePoints-1);
+    traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, float(dt)/downsampleFactor);
+    #traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, dt);
+    trajStartPosition = traj.poses[0].pose.position;
+    if(naoConnected):
+        lookAtTablet();
+    pub_traj_downsampled.publish(traj_downsampled);
+    pub_traj.publish(traj);
            
     
     nextState = "WAITING_FOR_LETTER_TO_FINISH";
@@ -704,25 +648,25 @@ def respondToNewWord(infoFromPrevState):
     if(naoSpeaking):
         if(wordSeenBefore):
             #toSay = wordToLearn+' again, ok.';
-            global word_responses_again_counter
+            global word_again_response_phrases_counter
             try:
-                toSay = word_responses_again[word_responses_again_counter]%wordToLearn;
+                toSay = word_again_response_phrases[word_again_response_phrases_counter]%wordToLearn;
             except TypeError:
-                toSay = word_responses_again[word_responses_again_counter];
-            word_responses_again_counter += 1;
-            if(word_responses_again_counter==len(word_responses_again)):
-                word_responses_again_counter = 0;
+                toSay = word_again_response_phrases[word_again_response_phrases_counter];
+            word_again_response_phrases_counter += 1;
+            if(word_again_response_phrases_counter==len(word_again_response_phrases)):
+                word_again_response_phrases_counter = 0;
 
         else:
             #toSay = wordToLearn+', alright.';
-            global word_responses_counter
+            global word_response_phrases_counter
             try:
-                toSay = word_responses[word_responses_counter]%wordToLearn;
+                toSay = word_response_phrases[word_response_phrases_counter]%wordToLearn;
             except TypeError:
-                toSay = word_responses[word_responses_counter];
-            word_responses_counter += 1;
-            if(word_responses_counter==len(word_responses)):
-                word_responses_counter = 0;
+                toSay = word_response_phrases[word_response_phrases_counter];
+            word_response_phrases_counter += 1;
+            if(word_response_phrases_counter==len(word_response_phrases)):
+                word_response_phrases_counter = 0;
     
         print('NAO: '+toSay);
         textToSpeech.say(toSay);    
@@ -1126,7 +1070,8 @@ if __name__ == "__main__":
             motionProxy.wbEnableEffectorControl(effector, True); #turn whole body motion control on
             
     #initialise word manager (passes feedback to shape learners and keeps history of words learnt)
-    wordManager = ShapeLearnerManager(generateSettings);
+    InteractionSettings.setDatasetDirectory(datasetDirectory);
+    wordManager = ShapeLearnerManager(InteractionSettings.generateSettings);
             
     
     '''
