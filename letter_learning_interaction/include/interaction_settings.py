@@ -53,22 +53,28 @@ class InteractionSettings():
     def getPhrases(language):
         if(language.lower()=='english'):
             introPhrase = "Hello. I'm Nao. Please show me a word to practice.";
+            testPhrase = "Ok, test time. I'll try my best.";
+            thankYouPhrase = 'Thank you for your help.';
+            
+            #The following phrases may have an optional string formatted into them
             demo_response_phrases = ["Okay, I'll try it like you", "So that's how you write %s", "That's a much better %s than mine", "I'll try to copy you","Let me try now","Thank you"];
             asking_phrases_after_feedback = ["Any better?", "How about now?", "Now what do you think?","Is there a difference?", "Is this one okay?", "Will you show me how?", "Did I improve?"];
             asking_phrases_after_word = ["Okay, what do you think?", "This is a hard word", "Is this how you write it?","Please help me"];
             word_response_phrases = ["%s, okay. ", "%s seems like a good word", "Hopefully I can do well with this word", "%s. Let's try", "Okay, %s now"];
             word_again_response_phrases = ["%s again, okay.", "I thought I already did %s", "You like to practice this word"];
-            testPhrase = "Ok, test time. I'll try my best.";
-            thankYouPhrase = 'Thank you for your help.';
+            
         elif(language.lower()=='french'):
             introPhrase = "Bonjour, je m'appelle Nao. Peux-tu me montrer un mot ?";
+            testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
+            thankYouPhrase = "Merci pour ton aide !";
+            
+            #The following phrases may have an optional string formatted into them
             demo_response_phrases = ["D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Ce %s est pas mal", "Bon, j'essaye comme toi", "Ok, à moi", "À mon tour", "Merci, je vais essayer"];
             asking_phrases_after_feedback = ["C'est mieux ?", "Et comme ça ?", "Tu en penses quoi ?", "Qu'est-ce que tu en penses ?", "Il y a une différence ?", "Ça va cette fois ?", "Je me suis amélioré ?", "Tu trouves que c'est mieux ?"];
             asking_phrases_after_word = ["Bon, qu'est ce que tu en penses ?", "Pas facile !", "C'est bien comme ça ?", "Je crois que j'ai besoin d'aide.", "Et voilà !"];
             word_response_phrases = ["D'accord pour %s", "Ok, j'essaye %s", "Bon, je devrais y arriver", "D'accord", "%s ? ok"];
             word_again_response_phrases = ["Encore %s ? bon, d'accord.", "Je crois que j'ai déjà fait %s", "On dirait que tu aimes bien %s !", "Encore ?"];
-            testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
-            thankYouPhrase = "Merci pour ton aide !";
+            
         else:
             RuntimeError('Requested language ('+ langauge + ') not supported');
         return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase

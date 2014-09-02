@@ -72,7 +72,7 @@ nextSideToLookAt = 'Right';
 
 # -- technical parameters come from the interaction_settings module
 
-#initialise of arrays of phrases to say at relevant times
+#initialise arrays of phrases to say at relevant times
 introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase = InteractionSettings.getPhrases(LANGUAGE);
 
 demo_response_phrases_counter = 0;
@@ -385,7 +385,7 @@ def publishShape(infoFromPrevState):
            
     
     nextState = "WAITING_FOR_LETTER_TO_FINISH";
-    infoForNextState = {'state_cameFrom':  "PUBLISHING_LETTER",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition};
+    infoForNextState = {'state_cameFrom':  "PUBLISHING_LETTER",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition,'shapePublished':shape.shapeType}; #only appends most recent shape's info (@todo)
     if(len(shapesToPublish) > 0): #more shapes to publish
         state_goTo = deepcopy(drawingLetterSubstates);#come back to publish the remaining shapes
         infoForNextState = {'state_goTo': state_goTo,'state_cameFrom': "PUBLISHING_LETTER",'shapesToPublish': shapesToPublish,'centre': trajStartPosition};
@@ -431,7 +431,7 @@ def publishWord(infoFromPrevState):
     
     shapesToPublish = [];
     nextState = "WAITING_FOR_LETTER_TO_FINISH";
-    infoForNextState = {'state_cameFrom':  "PUBLISHING_WORD",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition};
+    infoForNextState = {'state_cameFrom':  "PUBLISHING_WORD",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition, 'wordWritten':infoFromPrevState['wordToWrite']};
 
     return nextState, infoForNextState
     
@@ -559,7 +559,6 @@ def respondToNewWord(infoFromPrevState):
     wordSeenBefore = wordManager.newCollection(wordToLearn);
     if(naoSpeaking):
         if(wordSeenBefore):
-            #toSay = wordToLearn+' again, ok.';
             global word_again_response_phrases_counter
             try:
                 toSay = word_again_response_phrases[word_again_response_phrases_counter]%wordToLearn;
@@ -570,7 +569,6 @@ def respondToNewWord(infoFromPrevState):
                 word_again_response_phrases_counter = 0;
 
         else:
-            #toSay = wordToLearn+', alright.';
             global word_response_phrases_counter
             try:
                 toSay = word_response_phrases[word_response_phrases_counter]%wordToLearn;
@@ -594,7 +592,7 @@ def respondToNewWord(infoFromPrevState):
         shapesToPublish.append(shape);
 
     nextState = 'PUBLISHING_WORD';
-    infoForNextState = {'state_cameFrom': "RESPONDING_TO_NEW_WORD",'shapesToPublish': shapesToPublish};
+    infoForNextState = {'state_cameFrom': "RESPONDING_TO_NEW_WORD",'shapesToPublish': shapesToPublish,'wordToWrite': wordToLearn};
 
     global wordReceived
     if(wordReceived is not None):
@@ -614,11 +612,12 @@ def askForFeedback(infoFromPrevState):
     centre = infoFromPrevState['centre']; 
     print(infoFromPrevState['state_cameFrom'])
     if(infoFromPrevState['state_cameFrom'] == "PUBLISHING_WORD"):
-        print('Asking for feedback on word...');
+        wordWritten = infoFromPrevState['wordWritten'];
+        print('Asking for feedback on word '+wordWritten);
         if(naoSpeaking):
             global asking_phrases_after_word_counter
             try:
-                toSay = asking_phrases_after_word[asking_phrases_after_word_counter];
+                toSay = asking_phrases_after_word[asking_phrases_after_word_counter]%wordWritten;
             except TypeError:
                 toSay = asking_phrases_after_word[asking_phrases_after_word_counter];
             asking_phrases_after_word_counter += 1;
@@ -637,11 +636,12 @@ def askForFeedback(infoFromPrevState):
             
             lookAtTablet();
     elif(infoFromPrevState['state_cameFrom'] == "PUBLISHING_LETTER"):
-        print('Asking for feedback on letter...');
+        shapeType = infoFromPrevState['shapePublished'];
+        print('Asking for feedback on letter '+shapeType);
         if(naoSpeaking):
             global asking_phrases_after_feedback_counter
             try:
-                toSay = asking_phrases_after_feedback[asking_phrases_after_feedback_counter];
+                toSay = asking_phrases_after_feedback[asking_phrases_after_feedback_counter]%shapeType;
             except TypeError:
                 toSay = asking_phrases_after_feedback[asking_phrases_after_feedback_counter];
             asking_phrases_after_feedback_counter += 1;
