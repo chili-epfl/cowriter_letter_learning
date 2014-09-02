@@ -25,18 +25,18 @@ android:layout_height="fill_parent" android:background="#35517cff">
         android:baselineAligned="false">
         <!--android:src="@drawable/icon"-->
     </org.ros.android.shape_learner.DisplayManager>
-    <org.ros.android.shape_learner.SignatureView
+    <org.ros.android.shape_learner.UserDrawingView
         android:layout_height="fill_parent"
         android:id="@+id/signature" android:layout_width="fill_parent"
         android:baselineAligned="false"
         android:layout_gravity="bottom|right">
-    </org.ros.android.shape_learner.SignatureView>
-    <org.ros.android.shape_learner.SignatureView
+    </org.ros.android.shape_learner.UserDrawingView>
+    <org.ros.android.shape_learner.UserDrawingView
         android:layout_height="fill_parent"
         android:id="@+id/gestureView" android:layout_width="fill_parent"
         android:baselineAligned="false"
         android:layout_gravity="bottom|right">
-    </org.ros.android.shape_learner.SignatureView>
+    </org.ros.android.shape_learner.UserDrawingView>
     <!--<Button
         android:id="@+id/buttonSend"
         android:layout_width="wrap_content"
