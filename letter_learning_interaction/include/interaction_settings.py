@@ -26,6 +26,17 @@ learningModes = {'c': LearningModes.startsRandom,
 global datasetDirectory
 datasetDirectory = None;
 class InteractionSettings():
+    @staticmethod
+    def getTrajectoryTimings(naoWriting):
+        if(naoWriting):
+            t0 = 3;                 #Time allowed for the first point in traj (seconds) (@todo should be proportional to distance)
+            dt = 0.25               #Seconds between points in traj
+            delayBeforeExecuting = 3;#How far in future to request the traj be executed (to account for transmission delays and preparedness)
+        else:
+            t0 = 0.01;
+            dt = 0.1;
+            delayBeforeExecuting = 2.5;
+        return t0, dt, delayBeforeExecuting
 
     ###---------------------------------------------- NAO HEAD ANGLES FOR LOOKING
     @staticmethod

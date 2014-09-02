@@ -8,10 +8,6 @@ Nao learning words using the shape_learning package.
 
 import numpy
 from scipy import interpolate
-import math
-import pdb
-import matplotlib.pyplot as plt
-import time
 
 from letter_learning_interaction.interaction_settings import InteractionSettings
 
@@ -21,7 +17,7 @@ from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight(
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point, PointStamped
-from std_msgs.msg import String, Empty
+from std_msgs.msg import String, Empty, Bool
 
 from letter_learning_interaction.state_machine import StateMachine
 from copy import deepcopy
@@ -29,6 +25,8 @@ drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO
 
 
 rospy.init_node("learning_words_nao");
+
+# -- interaction config parameters come from launch file
 
 #Nao parameters
 NAO_IP = rospy.get_param('~nao_ip','127.0.0.1'); #default behaviour is to connect to simulator locally
@@ -71,6 +69,9 @@ alternateSidesLookingAt = False; #if true, nao will look to a different side eac
 global nextSideToLookAt
 nextSideToLookAt = 'Right';
 
+
+# -- technical parameters come from the interaction_settings module
+
 #initialise of arrays of phrases to say at relevant times
 introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase = InteractionSettings.getPhrases(LANGUAGE);
 
@@ -83,25 +84,15 @@ word_again_response_phrases_counter = 0;
 #get appropriate angles for looking at things
 headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles();
 
-delayBeforeExecuting = 2.5;
 #trajectory publishing parameters
-if(naoWriting):
-    t0 = 3;                 #Time allowed for the first point in traj (seconds)
-    dt = 0.25               #Seconds between points in traj
-    delayBeforeExecuting = 3;#How far in future to request the traj be executed (to account for transmission delays and preparedness)
-else:
-    t0 = 0.01;
-    dt = 0.1;
-    delayBeforeExecuting = 2.5;
+t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting);
 sizeScale_height = 0.035;    #Desired height of shape (metres) (because of grid used by shape_display_manager)
 sizeScale_width = 0.023;     #Desired width of shape (metres) (@todo this should be set by shape_display_manager)
 numDesiredShapePoints = 7.0;#Number of points to downsample the length of shapes to 
 numPoints_shapeModeler = 70; #Number of points used by ShapeModelers (@todo this could vary for each letter)
 
 
-from std_msgs.msg import Bool
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool);
-
 pub_traj = rospy.Publisher(SHAPE_TOPIC, Path);
 pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path);
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty);
@@ -270,11 +261,7 @@ def respondToDemonstration(infoFromPrevState):
 
     shape = ShapeModeler.normaliseShapeHeight(numpy.array(shape));
     shape = numpy.reshape(shape, (-1, 1)); #explicitly make it 2D array with only one column
-    '''
-    if(args.show):
-        plt.figure(1);
-        ShapeModeler.normaliseAndShowShape(shape);
-    '''
+
     shapeType = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor);
     if(naoSpeaking):
         global demo_response_phrases_counter
@@ -347,86 +334,11 @@ def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, delta
     else:
         return traj
     
-###
-            
-         
-###---------------------------------------------- WORD LEARNING SETTINGS
-
-def generateSettings(shapeType):
-    paramsToVary = [2];            #Natural number between 1 and numPrincipleComponents, representing which principle component to vary from the template
-    initialBounds_stdDevMultiples = numpy.array([[-6, 6]]);  #Starting bounds for paramToVary, as multiples of the parameter's observed standard deviation in the dataset
-    doGroupwiseComparison = True; #instead of pairwise comparison with most recent two shapes
-    initialParamValue = numpy.NaN;
-    initialBounds = numpy.array([[numpy.NaN, numpy.NaN]]);
-    
-    if shapeType == 'a':
-        paramsToVary = [6];
-        initialBounds_stdDevMultiples = numpy.array([[-3, 3]]);
-        datasetFile = datasetDirectory + '/a_noHook_dataset.txt';
-        initialParamValue = 0.8; 
-    elif shapeType == 'c':
-        paramToVary = 4;
-        initialBounds_stdDevMultiples = numpy.array([[-10, 10]]);
-        datasetFile = datasetDirectory + '/c_dataset.txt';
-        
-        if(learningModes[shapeType] == LearningModes.startsRandom):
-            initialBounds_stdDevMultiples = numpy.array([[-10, 10]]);
-        elif(learningModes[shapeType] == LearningModes.alwaysGood):
-            initialBounds_stdDevMultiples = numpy.array([[-4, -3]]);
-            initialParamValue = -0.5;
-        elif(learningModes[shapeType] == LearningModes.alwaysBad):
-            initialBounds_stdDevMultiples = numpy.array([[1.5, 10]]);
-            initialParamValue = 0.5;
-        elif(learningModes[shapeType] == LearningModes.startsBad):
-            initialBounds_stdDevMultiples = numpy.array([[-10, 10]]);
-            initialParamValue = 0.5; 
-    elif shapeType == 'd':
-        datasetFile = datasetDirectory + '/d_cursive_dataset.txt';
-    elif shapeType == 'e':
-        paramToVary = 3; 
-        initialBounds_stdDevMultiples = numpy.array([[-6, 14]]);
-        datasetFile = datasetDirectory + '/e_dataset.txt';
-        #initialParamValue = 0.8;
-    elif shapeType == 'm':
-        paramToVary = 6; 
-        initialBounds_stdDevMultiples = numpy.array([[-10, -6]]);
-        datasetFile = datasetDirectory + '/m_dataset.txt';
-        initialParamValue = -0.5;#0.0;
-    elif shapeType == 'n':
-        paramToVary = 7; 
-        datasetFile = datasetDirectory + '/n_dataset.txt';
-        initialParamValue = 0.0;
-    elif shapeType == 'o':
-        paramsToVary = [4];
-        initialBounds_stdDevMultiples = numpy.array([[-3.5, 3]]);
-        datasetFile = datasetDirectory + '/o_dataset.txt';
-    elif shapeType == 'r':
-        paramToVary = 1;
-        datasetFile = datasetDirectory + '/r_print_dataset.txt';
-    elif shapeType == 's':
-        datasetFile = datasetDirectory + '/s_print_dataset.txt';
-    elif shapeType == 'u':
-        paramsToVary = [3];
-        datasetFile = datasetDirectory + '/u_dataset.txt';
-    elif shapeType == 'v':
-        paramToVary = 6;
-        datasetFile = datasetDirectory + '/v_dataset.txt';
-    elif shapeType == 'w':
-        datasetFile = datasetDirectory + '/w_dataset.txt';
-    else:
-        raise RuntimeError("Dataset is not known for shape "+ shapeType);
-    settings = SettingsStruct(shape_learning = shapeType,
-    paramsToVary = paramsToVary, doGroupwiseComparison = True, 
-    datasetFile = datasetFile, initialBounds = initialBounds, 
-    initialBounds_stdDevMultiples = initialBounds_stdDevMultiples,
-    initialParamValue = initialParamValue, minParamDiff = 0.4);
-    return settings
-
 def lookAtTablet():
     if(effector=="RArm"):   #tablet will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.2, 0.08125996589660645],0.2);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_right,0.2);
     else: 
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.2, 0.08125996589660645],0.2);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_left,0.2);
     
 def lookAndAskForFeedback(toSay,side):
     if(naoWriting):
@@ -434,9 +346,9 @@ def lookAndAskForFeedback(toSay,side):
         motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.3)
     
     if(side=="Right"):   #person will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[-0.9639739513397217, 0.08125996589660645],0.2);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_right,0.2);
     else:                   #person will be on our left
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],[0.9639739513397217, 0.08125996589660645],0.2);
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_left,0.2);
         
     if(naoSpeaking):
         textToSpeech.say(toSay);
@@ -712,13 +624,17 @@ def askForFeedback(infoFromPrevState):
             asking_phrases_after_word_counter += 1;
             if(asking_phrases_after_word_counter==len(asking_phrases_after_word)):
                 asking_phrases_after_word_counter = 0;
-            global nextSideToLookAt
-            lookAndAskForFeedback(toSay,nextSideToLookAt);
-            if(alternateSidesLookingAt):
+               
+            if(alternateSidesLookingAt):    
+                global nextSideToLookAt
+                lookAndAskForFeedback(toSay,nextSideToLookAt);
                 if(nextSideToLookAt == 'Left'):
                     nextSideToLookAt = 'Right';
                 else:
                     nextSideToLookAt = 'Left';
+            else:
+                lookAndAskForFeedback(toSay,personSide);
+            
             lookAtTablet();
     elif(infoFromPrevState['state_cameFrom'] == "PUBLISHING_LETTER"):
         print('Asking for feedback on letter...');
@@ -731,19 +647,26 @@ def askForFeedback(infoFromPrevState):
             asking_phrases_after_feedback_counter += 1;
             if(asking_phrases_after_feedback_counter==len(asking_phrases_after_feedback)):
                 asking_phrases_after_feedback_counter = 0;
-            global nextSideToLookAt
-            lookAndAskForFeedback(toSay,nextSideToLookAt);
-            if(alternateSidesLookingAt):
+                
+            if(alternateSidesLookingAt):    
+                global nextSideToLookAt
+                lookAndAskForFeedback(toSay,nextSideToLookAt);
                 if(nextSideToLookAt == 'Left'):
                     nextSideToLookAt = 'Right';
                 else:
                     nextSideToLookAt = 'Left';
+            else:
+                lookAndAskForFeedback(toSay,personSide);
+            
             lookAtTablet();
+    '''
+    #this doesn't get entered into anymore
     elif(infoFromPrevState['state_cameFrom'] == "RESPONDING_TO_DEMONSTRATION"):
         print('Asking for feedback on demo response...');
         if(naoSpeaking):
             lookAndAskForFeedback("How about now?");
             lookAtTablet();
+    '''
     nextState = "WAITING_FOR_FEEDBACK";
     infoForNextState = {'state_cameFrom': "ASKING_FOR_FEEDBACK"};
     global wordReceived;
@@ -806,8 +729,12 @@ def startInteraction(infoFromPrevState):
     print('Hey I\'m Nao');
     print("Do you have any words for me to write?");
     if(naoSpeaking):
-        global nextSideToLookAt
-        lookAndAskForFeedback(introPhrase,nextSideToLookAt);
+        if(alternateSidesLookingAt):    
+            global nextSideToLookAt
+            lookAndAskForFeedback(introPhrase,nextSideToLookAt);
+        else:
+            lookAndAskForFeedback(introPhrase,personSide);
+            
     nextState = "WAITING_FOR_WORD";
     infoForNextState = {'state_cameFrom': "STARTING_INTERACTION"};
     if(stopRequestReceived):
@@ -830,9 +757,11 @@ def onNewChildReceived(message):
     if(naoWriting):
             postureProxy.goToPosture("StandInit", 0.3)
     if(naoSpeaking):
-        global nextSideToLookAt
-        #toSay = "Hello. I'm Nao. Please show me a word to practice.";
-        lookAndAskForFeedback(introPhrase,nextSideToLookAt);
+        if(alternateSidesLookingAt):    
+            global nextSideToLookAt
+            lookAndAskForFeedback(introPhrase,nextSideToLookAt);
+        else:
+            lookAndAskForFeedback(introPhrase,personSide);
     #clear screen
     pub_clear.publish(Empty());
     rospy.sleep(0.5);
@@ -989,8 +918,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args();
         
-    if(args.show):
-        plt.ion(); #to plot one shape at a time
     '''
     
     stateMachine = StateMachine();
