@@ -27,7 +27,7 @@ if __name__=="__main__":
                       'tag_17':'test','tag_18':'stop' #special tags
                           };
     else:
-        print('language not supported');
+        raise RuntimeError('Requested language ('+ LANGUAGE + ') not supported');
         
     pub_words = rospy.Publisher(WORDS_TOPIC, String)
     pub_stop = rospy.Publisher(STOP_TOPIC, Empty)
