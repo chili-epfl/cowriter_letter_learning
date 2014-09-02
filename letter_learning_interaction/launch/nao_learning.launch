@@ -4,7 +4,8 @@
     <arg name="use_sim_nao" default="true" /> <!-- if true, webots simulation expected to be running -->
 
     <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
-    <arg name="nao_handedness" default="right" />    
+    <arg name="nao_handedness" default="right" /> 
+    <arg name="person_side" default="$(arg nao_handedness)" />   
         
     <arg name="use_external_camera" default="true" /> <!-- if false, camera on robot will be used -->
     <arg name="camera_device" default="/dev/video0" /> <!-- only used if using external camera -->
@@ -64,7 +65,7 @@
     </group> 
 
     <!-- Start the learning algorithm -->
-    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao" required="true">
+    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">
         
         <param name="use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
         <param name="language" type="str" value="$(arg language)"/>
