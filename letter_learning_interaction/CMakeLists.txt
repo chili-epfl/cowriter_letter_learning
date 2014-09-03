@@ -37,6 +37,12 @@ add_service_files(
    displayShapeAtLocation.srv
 )
 
+## Generate messages in the 'msg' folder
+add_message_files(
+   FILES
+   Shape.msg
+)
+
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
