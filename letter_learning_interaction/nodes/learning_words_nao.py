@@ -18,6 +18,7 @@ import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point, PointStamped
 from std_msgs.msg import String, Empty, Bool
+from letter_learning_interaction.msg import Shape as ShapeMsg
 
 from letter_learning_interaction.state_machine import StateMachine
 from copy import deepcopy
@@ -54,11 +55,11 @@ SHAPE_TOPIC_DOWNSAMPLED = rospy.get_param('~trajectory_output_nao_topic','/write
 #tablet params        
 CLEAR_SURFACE_TOPIC = rospy.get_param('~clear_writing_surface_topic','clear_screen');
 SHAPE_FINISHED_TOPIC = rospy.get_param('~shape_writing_finished_topic','shape_finished');
-USER_DRAWN_SHAPES_TOPIC = rospy.get_param('~user_drawn_shapes_topic','user_drawn_shapes');
 GESTURE_TOPIC = rospy.get_param('~gesture_info_topic','gesture_info');
 
 #interaction params
 WORDS_TOPIC = rospy.get_param('~words_to_write_topic','words_to_write');
+PROCESSED_USER_SHAPE_TOPIC = rospy.get_param('~processed_user_shape_topic','user_shapes_processed');#Listen for user shapes
 TEST_TOPIC = rospy.get_param('~test_request_topic','test_learning');#Listen for when test card has been shown to the robot
 STOP_TOPIC = rospy.get_param('~stop_request_topic','stop_learning');#Listen for when stop card has been shown to the robot
 NEW_CHILD_TOPIC = rospy.get_param('~new_teacher_topic','new_child');#Welcome a new teacher but don't reset learning algorithm's 'memory'
@@ -97,47 +98,6 @@ pub_traj = rospy.Publisher(SHAPE_TOPIC, Path);
 pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path);
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty);
 
-wordReceived = None;
-strokes=[];
-def userShapePreprocessor(message):
-    global strokes
-    
-    if(len(message.poses)==0):
-        #decide what to do with strokes received
-        length_longestStroke = 0;
-        try:
-            for stroke in strokes:
-                if(stroke.shape[0]>length_longestStroke):
-                    longestStroke = stroke;
-                    length_longestStroke = stroke.shape[0];
-            
-            #tell how to interpret the shape intended for
-            if(message._connection_header['callerid'] == '/child_tablet/interaction_manager'):
-                positionToShapeMappingMethod = 'basedOnColumnOfScreen';
-            else:#/android_gingerbread/interaction_manager'
-                positionToShapeMappingMethod = 'basedOnClosestShapeToPosition';#'basedOnShapeAtPosition';
-            onUserDrawnShapeReceived(longestStroke,positionToShapeMappingMethod); 
-        except UnboundLocalError:
-            print('empty demonstration. ignoring')
-        strokes = [];
-    else:
-        print('Got stroke to write with '+str(len(message.poses))+' points');
-        x_shape = [];
-        y_shape = [];
-        for poseStamped in message.poses:
-            x_shape.append(poseStamped.pose.position.x);
-            y_shape.append(-poseStamped.pose.position.y);
-            
-        numPointsInShape = len(x_shape); 
-
-        shape = [];
-        shape[0:numPointsInShape] = x_shape;
-        shape[numPointsInShape:] = y_shape;
-        
-        shape = numpy.reshape(shape, (-1, 1)); #explicitly make it 2D array with only one column
-        strokes.append(shape);
-
-
 activeShapeForDemonstration_type = None;
 def onSetActiveShapeGesture(message):
     global activeShapeForDemonstration_type
@@ -160,85 +120,22 @@ def onSetActiveShapeGesture(message):
         print('Setting active shape to ' + wordManager.shapeAtIndexInCurrentCollection(activeShapeForDemonstration_type));
 
 demoShapeReceived = None;
-def onUserDrawnShapeReceived(path, positionToShapeMappingMethod):
-    global demoShapeReceived, activeShapeForDemonstration_type
-            
-    location = ShapeModeler.getShapeCentre(path);
-    try:
-        if(positionToShapeMappingMethod == 'basedOnColumnOfScreen'):
-            #map to shapelearner based on third of the screen demo was in
-            if(location[0]<.21/3):
-                shapeType_demoFor = 0;
-            elif(location[0]>.21/3*2):
-                shapeType_demoFor = 2;
-            else:
-                shapeType_demoFor = 1;
-            
-        elif( positionToShapeMappingMethod == 'basedOnShapeAtPosition'):
-            shape_at_location = rospy.ServiceProxy('shape_at_location', shapeAtLocation);
-            request = shapeAtLocationRequest();
-            request.location.x = location[0];
-            request.location.y = location[1];
-            response = shape_at_location(request);
-            shapeType_demoFor = response.shape_type_code;
-            
-        else:
-            closest_shapes_to_location = rospy.ServiceProxy('closest_shapes_to_location', closestShapesToLocation);
-            request = closestShapesToLocationRequest();
-            request.location.x = location[0];
-            request.location.y = location[1];
-            response = closest_shapes_to_location(request);
-            closestShapes_type = response.shape_type_code;
-            if(len(closestShapes_type)>1 and activeShapeForDemonstration_type is not None):
-                try: #see if active shape is in list
-                    dummyIndex = closestShapes_type.index(activeShapeForDemonstration_type);
-                    shapeType_demoFor = activeShapeForDemonstration_type;
-                except ValueError: #just use first in list otherwise
-                    shapeType_demoFor = closestShapes_type[0];
-            else: #just use first in list
-                shapeType_demoFor = closestShapes_type[0];
-            
-            #block the space from robot use
-            try:
-                display_shape_at_location = rospy.ServiceProxy('display_shape_at_location', displayShapeAtLocation);
-                request = displayShapeAtLocationRequest();
-                request.shape_type_code = shapeType_demoFor;
-                request.location.x = location[0];
-                request.location.y = location[1];
-                #todo: allow for blocking different sized shapes
-                response = display_shape_at_location(request);
-                result = response.success;
-                #todo: do something if unsuccessful
-            except rospy.ServiceException, e:
-                print "Service call failed: %s"%e
-           
-        '''
-        index_of_location = rospy.ServiceProxy('index_of_location', indexOfLocation);
-        request = indexOfLocationRequest();
-        request.location.x = location[0];
-        request.location.y = location[1];
-        response = index_of_location(request);
-        shapeIndex_demoFor = 0#response.row;
-         '''
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
-    
-    if(shapeType_demoFor == -1):# or response.shape_id == -1): 
-        print("Ignoring demo because not for valid shape");
+def onUserDrawnShapeReceived(shape):
+    global demoShapeReceived
+
+    if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
+    or stateMachine.get_state() == "ASKING_FOR_FEEDBACK"):
+        demoShapeReceived = shape; #replace any existing feedback with new
+        demoShapeReceived.shapeType = wordManager.shapeAtIndexInCurrentCollection(demoShapeReceived.shapeType_code);
+        print('Received demonstration for '+demoShapeReceived.shapeType);
     else:
-        if((stateMachine.get_state() == "WAITING_FOR_FEEDBACK" and demoShapeReceived is None)
-        or (stateMachine.get_state() == "ASKING_FOR_FEEDBACK" and demoShapeReceived is None)): #only accept first stroke!
-            demoShapeReceived = {'path': path, 'shapeType_code': shapeType_demoFor}; #replace any existing feedback with new
-            print('Received demonstration');
-            activeShapeForDemonstration_type = shapeType_demoFor;
-        else:
-            pass; #ignore feedback
+        pass; #ignore feedback
     
 def respondToDemonstration(infoFromPrevState):
     print('------------------------------------------ RESPONDING_TO_DEMONSTRATION');
     demoShapeReceived = infoFromPrevState['demoShapeReceived'];
-    shape = demoShapeReceived['path'];
-    shapeIndex_demoFor = demoShapeReceived['shapeType_code'];
+    shape = demoShapeReceived.path;
+    shapeIndex_demoFor = demoShapeReceived.shapeType_code;
     numPointsInShape = len(shape)/2;
     x_shape = shape[0:numPointsInShape];
     y_shape = shape[numPointsInShape:];
@@ -553,9 +450,8 @@ def respondToFeedback(infoFromPrevState):
 def respondToNewWord(infoFromPrevState):
     print('------------------------------------------ RESPONDING_TO_NEW_WORD'); 
     global shapeFinished, wordManager #@todo make class attribute 
-    message = infoFromPrevState['wordReceived'];
+    wordToLearn = infoFromPrevState['wordReceived'];
     print("Cheers");
-    wordToLearn = message.data;
     wordSeenBefore = wordManager.newCollection(wordToLearn);
     if(naoSpeaking):
         if(wordSeenBefore):
@@ -741,6 +637,7 @@ def startInteraction(infoFromPrevState):
         nextState = "STOPPING";
     return nextState, infoForNextState
 
+wordReceived = None;
 def onWordReceived(message):
     global wordReceived 
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
@@ -748,7 +645,7 @@ def onWordReceived(message):
     or stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
     or stateMachine.get_state() == "STARTING_INTERACTION"
     or stateMachine.get_state() is None): #state machine hasn't started yet - word probably came from input arguments
-        wordReceived = message;
+        wordReceived = message.data;
         print('Received word');
     else:
         wordReceived = None; #ignore 
@@ -962,7 +859,7 @@ if __name__ == "__main__":
     stop_subscriber = rospy.Subscriber(STOP_TOPIC, Empty, onStopRequestReceived); 
     
     #listen for user-drawn shapes
-    shape_subscriber = rospy.Subscriber(USER_DRAWN_SHAPES_TOPIC, Path, userShapePreprocessor); 
+    shape_subscriber = rospy.Subscriber(PROCESSED_USER_SHAPE_TOPIC, ShapeMsg, onUserDrawnShapeReceived); 
         
     #initialise display manager for shapes (manages positioning of shapes)
     from letter_learning_interaction.srv import *
