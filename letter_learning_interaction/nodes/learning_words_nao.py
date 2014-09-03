@@ -3,6 +3,10 @@
 
 """
 Nao learning words using the shape_learning package.
+This node manages the state machine which maintains the interaction sequence,
+receives interaction inputs e.g. which words to write and user demonstrations, 
+passes these demonstrations to the learning algorithm, and publishes the 
+resulting learned shapes for the robot and tablet to draw.
 """
 
 
@@ -16,16 +20,15 @@ from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight(
 
 import rospy
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, Point, PointStamped
+from geometry_msgs.msg import PoseStamped, Point
 from std_msgs.msg import String, Empty, Bool
 from letter_learning_interaction.msg import Shape as ShapeMsg
 
 from letter_learning_interaction.state_machine import StateMachine
 from copy import deepcopy
-drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER'];
-
 
 rospy.init_node("learning_words_nao");
+
 
 # -- interaction config parameters come from launch file
 
@@ -92,11 +95,16 @@ numDesiredShapePoints = 7.0;#Number of points to downsample the length of shapes
 numPoints_shapeModeler = 70; #Number of points used by ShapeModelers (@todo this could vary for each letter)
 
 
+drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER'];
+
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool);
 pub_traj = rospy.Publisher(SHAPE_TOPIC, Path);
 pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path);
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty);
 
+
+
+# ---------------------------------------- CALLBACK METHODS FOR ROS SUBSCRIBERS
 
 demoShapeReceived = None;
 def onUserDrawnShapeReceived(shape):
@@ -109,41 +117,84 @@ def onUserDrawnShapeReceived(shape):
         print('Received demonstration for '+demoShapeReceived.shapeType);
     else:
         pass; #ignore feedback
+        
+shapeFinished = False;
+def onShapeFinished(message):
+    global shapeFinished;
+    shapeFinished = True; #@TODO only register when appropriate
+
+testRequestReceived = False;
+def onTestRequestReceived(message):
+    global testRequestReceived
+    #@TODO don't respond to test card unless something has been learnt
+    testRequestReceived = True;
+        
+stopRequestReceived = False;
+def onStopRequestReceived(message):
+    global stopRequestReceived
+    stopRequestReceived = True;
+           
+def onClearScreenReceived(message):
+    print('Clearing display');
+    try:
+        clear_all_shapes = rospy.ServiceProxy('clear_all_shapes', clearAllShapes);
+        resp1 = clear_all_shapes();
+        print( resp1.success);
+    except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+    
+wordReceived = None;
+def onWordReceived(message):
+    global wordReceived 
+    if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
+    or stateMachine.get_state() == "WAITING_FOR_WORD"
+    or stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
+    or stateMachine.get_state() == "STARTING_INTERACTION"
+    or stateMachine.get_state() is None): #state machine hasn't started yet - word probably came from input arguments
+        wordReceived = message.data;
+        print('Received word');
+    else:
+        wordReceived = None; #ignore 
+ 
+feedbackReceived = None;     
+def onFeedbackReceived(message):
+    global feedbackReceived 
+    if(stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
+        or stateMachine.get_state() == "WAITING_FOR_FEEDBACK" 
+        or stateMachine.get_state() == "WAITING_FOR_LETTER_TO_FINISH" ):
+        feedbackReceived = message; #replace any existing feedback with new
+        print('Received feedback');
+    elif(stateMachine.get_state() == "RESPONDING_TO_FEEDBACK"):
+        feedbackReceived = None; #ignore feedback
+          
+def onNewChildReceived(message):
+    if(naoWriting):
+            postureProxy.goToPosture("StandInit", 0.3)
+    if(naoSpeaking):
+        if(alternateSidesLookingAt):    
+            global nextSideToLookAt
+            lookAndAskForFeedback(introPhrase,nextSideToLookAt);
+        else:
+            lookAndAskForFeedback(introPhrase,personSide);
+    #clear screen
+    pub_clear.publish(Empty());
+    rospy.sleep(0.5);
+    
+# ------------------------------- METHODS FOR DIFFERENT STATES IN STATE MACHINE
     
 def respondToDemonstration(infoFromPrevState):
     print('------------------------------------------ RESPONDING_TO_DEMONSTRATION');
     demoShapeReceived = infoFromPrevState['demoShapeReceived'];
     shape = demoShapeReceived.path;
     shapeIndex_demoFor = demoShapeReceived.shapeType_code;
-    numPointsInShape = len(shape)/2;
-    x_shape = shape[0:numPointsInShape];
-    y_shape = shape[numPointsInShape:];
     
-    if isinstance(x_shape,numpy.ndarray): #convert arrays to lists for interp1d
-        x_shape = (x_shape.T).tolist()[0];
-        y_shape = (y_shape.T).tolist()[0];
-        
-    #make shape have the same number of points as the shape_modeler
-    t_current = numpy.linspace(0, 1, numPointsInShape);
-    t_desired = numpy.linspace(0, 1, numPoints_shapeModeler);
-    f = interpolate.interp1d(t_current, x_shape, kind='cubic');
-    x_shape = f(t_desired);
-    f = interpolate.interp1d(t_current, y_shape, kind='cubic');
-    y_shape = f(t_desired);
-       
-    shape = [];
-    shape[0:numPoints_shapeModeler] = x_shape;
-    shape[numPoints_shapeModeler:] = y_shape;
-
-    shape = ShapeModeler.normaliseShapeHeight(numpy.array(shape));
-    shape = numpy.reshape(shape, (-1, 1)); #explicitly make it 2D array with only one column
-
+    shape = downsampleShape(shape);
     shapeType = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor);
     if(naoSpeaking):
         global demo_response_phrases_counter
         try:
             toSay = demo_response_phrases[demo_response_phrases_counter]%shapeType;
-        except TypeError:
+        except TypeError: #string wasn't meant to be formatted
             toSay = demo_response_phrases[demo_response_phrases_counter];
         demo_response_phrases_counter += 1;
         if(demo_response_phrases_counter==len(demo_response_phrases)):
@@ -159,83 +210,7 @@ def respondToDemonstration(infoFromPrevState):
     infoForNextState = {'state_goTo': state_goTo, 'state_cameFrom': "RESPONDING_TO_DEMONSTRATION",'shapesToPublish': [shape]};
     return nextState, infoForNextState
     
-def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, deltaT):      
-    if(startTime!=t0):
-        penUpToFirst = True;
-    else:
-        penUpToFirst = False;
     
-    traj = Path();
-    traj.header.frame_id = FRAME#headerString;
-    traj.header.stamp = rospy.Time.now()+rospy.Duration(delayBeforeExecuting);
-    shape = ShapeModeler.normaliseShapeHeight(shape);
-    numPointsInShape_orig = len(shape)/2;   
-    
-    x_shape = shape[0:numPointsInShape_orig];
-    y_shape = shape[numPointsInShape_orig:];
-    
-    if(downsample):
-        #make shape have the appropriate number of points
-        t_current = numpy.linspace(0, 1, numPointsInShape_orig);
-        t_desired = numpy.linspace(0, 1, numDesiredShapePoints);
-        f = interpolate.interp1d(t_current, x_shape[:,0], kind='cubic');
-        x_shape = f(t_desired);
-        f = interpolate.interp1d(t_current, y_shape[:,0], kind='cubic');
-        y_shape = f(t_desired);
-
-        numPointsInShape = len(x_shape);
-        downsampleFactor = numPointsInShape_orig/float(numPointsInShape);
-    else:
-        numPointsInShape = numPointsInShape_orig;
-
-    for i in range(numPointsInShape):
-        point = PoseStamped();
-
-        point.pose.position.x = x_shape[i]*sizeScale_width;
-        point.pose.position.y = -y_shape[i]*sizeScale_height;
-        
-        point.pose.position.x+= + shapeCentre[0];
-        point.pose.position.y+= + shapeCentre[1];
-        
-        point.header.frame_id = FRAME;
-        point.header.stamp = rospy.Time(startTime+i*deltaT+t0); #@todo allow for variable time between points for now
-
-        if(penUpToFirst and i==0):
-            point.header.seq = 1;
-
-        traj.poses.append(deepcopy(point));
-
-    if(downsample):
-        return traj, downsampleFactor
-    else:
-        return traj
-    
-def lookAtTablet():
-    if(effector=="RArm"):   #tablet will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_right,0.2);
-    else: 
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_left,0.2);
-    
-def lookAndAskForFeedback(toSay,side):
-    if(naoWriting):
-        #put arm down
-        motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.3)
-    
-    if(side=="Right"):   #person will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_right,0.2);
-    else:                   #person will be on our left
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_left,0.2);
-        
-    if(naoSpeaking):
-        textToSpeech.say(toSay);
-        print('NAO: '+toSay);
-
-def onShapeFinished(message):
-    global shapeFinished;
-    shapeFinished = True; #TODO only register when appropriate
-               
-        
-### ------------------------------------------------------ PUBLISH SHAPE        
 def publishShape(infoFromPrevState):
     print('------------------------------------------ PUBLISHING_LETTER'); 
     shapesToPublish = infoFromPrevState['shapesToPublish'];
@@ -261,14 +236,13 @@ def publishShape(infoFromPrevState):
            
     
     nextState = "WAITING_FOR_LETTER_TO_FINISH";
-    infoForNextState = {'state_cameFrom':  "PUBLISHING_LETTER",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition,'shapePublished':shape.shapeType}; #only appends most recent shape's info (@todo)
+    infoForNextState = {'state_cameFrom':  "PUBLISHING_LETTER",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition,'shapePublished':shape.shapeType}; #only appends most recent shape's info (@TODO)
     if(len(shapesToPublish) > 0): #more shapes to publish
         state_goTo = deepcopy(drawingLetterSubstates);#come back to publish the remaining shapes
         infoForNextState = {'state_goTo': state_goTo,'state_cameFrom': "PUBLISHING_LETTER",'shapesToPublish': shapesToPublish,'centre': trajStartPosition};
     
     return nextState, infoForNextState
     
-### ------------------------------------------------------ PUBLISH WORD        
 def publishWord(infoFromPrevState):
     print('------------------------------------------ PUBLISHING_WORD'); 
     shapesToPublish = infoFromPrevState['shapesToPublish'];
@@ -323,10 +297,8 @@ def waitForShapeToFinish(infoFromPrevState):
         print('------------------------------------------ WAITING_FOR_LETTER_TO_FINISH');
         infoToRestore_waitForShapeToFinish = infoFromPrevState;
     
-    #default
-    nextState = 'WAITING_FOR_LETTER_TO_FINISH';
-    infoForNextState = {'state_cameFrom': 'WAITING_FOR_LETTER_TO_FINISH'};
-    
+    nextState = None;
+        
     #once shape has finished
     global shapeFinished
     if(shapeFinished):
@@ -336,7 +308,7 @@ def waitForShapeToFinish(infoFromPrevState):
         try:
             if(infoForNextState['state_goTo'] is not None and len(infoForNextState['state_goTo'])>0):
                 nextState = infoForNextState['state_goTo'].pop(0); #go to the next state requested to and remove it from the list
-                #TODO make sure it actually gets executed before popping it...
+                #@TODO make sure it actually gets executed before popping it...
         except:
             #nothing planned..
             nextState = 'WAITING_FOR_FEEDBACK';
@@ -345,17 +317,24 @@ def waitForShapeToFinish(infoFromPrevState):
     if(not tabletWatchdog.isResponsive()):
         nextState = 'WAITING_FOR_TABLET_TO_CONNECT';
         infoForNextState = {'state_goTo': ['WAITING_FOR_FEEDBACK'], 'state_cameFrom': 'WAITING_FOR_LETTER_TO_FINISH'};
-        #TODO go back and re-send whatever we just send that we never got the shapeFinished message for...
+        #@TODO go back and re-send whatever we just send that we never got the shapeFinished message for...
     '''
 
     if(stopRequestReceived):
         nextState = "STOPPING";   
     
+    if(nextState is None):
+        #default behaviour is to keep waiting
+        rospy.sleep(0.1); #don't check straight away
+        nextState = 'WAITING_FOR_LETTER_TO_FINISH';
+        infoForNextState = {'state_cameFrom': 'WAITING_FOR_LETTER_TO_FINISH'};
+    
     return nextState, infoForNextState
           
+#NOTE THAT THIS WAS FOR TOUCH-BASED FEEDBACK, WHICH ISN'T USED ANYMORE
 def respondToFeedback(infoFromPrevState):
     print('------------------------------------------ RESPONDING_TO_FEEDBACK'); 
-    global shapeFinished #todo: make class attribute
+    global shapeFinished #@TODO: make class attribute
     
     stringReceived = infoFromPrevState['feedbackReceived'];
     
@@ -411,7 +390,7 @@ def respondToFeedback(infoFromPrevState):
                 nextState = state_goTo.pop(0);
                 infoForNextState = {'state_goTo': state_goTo,'state_cameFrom': "RESPONDING_TO_FEEDBACK",'shapesToPublish': [newShape]};
             else:
-                pass #TODO handle convergence
+                pass #@TODO handle convergence
 
     global wordReceived
     if(wordReceived is not None):
@@ -425,10 +404,11 @@ def respondToFeedback(infoFromPrevState):
     if(stopRequestReceived):
         nextState = "STOPPING";
     return nextState, infoForNextState
+    
         
 def respondToNewWord(infoFromPrevState):
     print('------------------------------------------ RESPONDING_TO_NEW_WORD'); 
-    global shapeFinished, wordManager #@todo make class attribute 
+    global shapeFinished, wordManager #@TODO make class attribute 
     wordToLearn = infoFromPrevState['wordReceived'];
     print("Cheers");
     wordSeenBefore = wordManager.newCollection(wordToLearn);
@@ -437,7 +417,7 @@ def respondToNewWord(infoFromPrevState):
             global word_again_response_phrases_counter
             try:
                 toSay = word_again_response_phrases[word_again_response_phrases_counter]%wordToLearn;
-            except TypeError:
+            except TypeError: #string wasn't meant to be formatted
                 toSay = word_again_response_phrases[word_again_response_phrases_counter];
             word_again_response_phrases_counter += 1;
             if(word_again_response_phrases_counter==len(word_again_response_phrases)):
@@ -447,7 +427,7 @@ def respondToNewWord(infoFromPrevState):
             global word_response_phrases_counter
             try:
                 toSay = word_response_phrases[word_response_phrases_counter]%wordToLearn;
-            except TypeError:
+            except TypeError: #string wasn't meant to be formatted
                 toSay = word_response_phrases[word_response_phrases_counter];
             word_response_phrases_counter += 1;
             if(word_response_phrases_counter==len(word_response_phrases)):
@@ -482,6 +462,7 @@ def respondToNewWord(infoFromPrevState):
         nextState = "STOPPING";
     return nextState, infoForNextState
     
+    
 def askForFeedback(infoFromPrevState): 
     print('------------------------------------------ ASKING_FOR_FEEDBACK'); 
     centre = infoFromPrevState['centre']; 
@@ -493,7 +474,7 @@ def askForFeedback(infoFromPrevState):
             global asking_phrases_after_word_counter
             try:
                 toSay = asking_phrases_after_word[asking_phrases_after_word_counter]%wordWritten;
-            except TypeError:
+            except TypeError: #string wasn't meant to be formatted
                 toSay = asking_phrases_after_word[asking_phrases_after_word_counter];
             asking_phrases_after_word_counter += 1;
             if(asking_phrases_after_word_counter==len(asking_phrases_after_word)):
@@ -517,7 +498,7 @@ def askForFeedback(infoFromPrevState):
             global asking_phrases_after_feedback_counter
             try:
                 toSay = asking_phrases_after_feedback[asking_phrases_after_feedback_counter]%shapeType;
-            except TypeError:
+            except TypeError: #string wasn't meant to be formatted
                 toSay = asking_phrases_after_feedback[asking_phrases_after_feedback_counter];
             asking_phrases_after_feedback_counter += 1;
             if(asking_phrases_after_feedback_counter==len(asking_phrases_after_feedback)):
@@ -557,12 +538,7 @@ def askForFeedback(infoFromPrevState):
         nextState = "STOPPING";
     return nextState, infoForNextState
 
-testRequestReceived = False;
-def onTestRequestReceived(message):
-    global testRequestReceived
-    #TODO: DON'T RESPOND TO TEST CARD UNTIL YOU HAVE LEARNT SOMETHING
-    testRequestReceived = True;
-    
+
 def respondToTestCard(infoFromPrevState):
     print('------------------------------------------ RESPONDING_TO_TEST_CARD');
     print('Show me a test word');
@@ -571,12 +547,8 @@ def respondToTestCard(infoFromPrevState):
     nextState = "WAITING_FOR_WORD";
     infoForNextState = {'state_cameFrom': "RESPONDING_TO_TEST_CARD"};
     return nextState, infoForNextState
-    
-stopRequestReceived = False;
-def onStopRequestReceived(message):
-    global stopRequestReceived
-    stopRequestReceived = True;
-    
+  
+  
 def stopInteraction(infoFromPrevState):
     print('------------------------------------------ STOPPING');
     if(naoSpeaking):
@@ -584,21 +556,12 @@ def stopInteraction(infoFromPrevState):
     if(naoConnected):
         motionProxy.wbEnableEffectorControl(effector,False);
         motionProxy.rest()
-
     nextState = "EXIT";
     infoForNextState = 0;
     rospy.signal_shutdown('Interaction exited');
     return nextState, infoForNextState
-          
-def onClearScreenReceived(message):
-    print('Clearing display');
-    try:
-        clear_all_shapes = rospy.ServiceProxy('clear_all_shapes', clearAllShapes);
-        resp1 = clear_all_shapes();
-        print( resp1.success);
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
-        
+     
+     
 def startInteraction(infoFromPrevState):
     print('------------------------------------------ STARTING_INTERACTION');
     print('Hey I\'m Nao');
@@ -616,31 +579,6 @@ def startInteraction(infoFromPrevState):
         nextState = "STOPPING";
     return nextState, infoForNextState
 
-wordReceived = None;
-def onWordReceived(message):
-    global wordReceived 
-    if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
-    or stateMachine.get_state() == "WAITING_FOR_WORD"
-    or stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
-    or stateMachine.get_state() == "STARTING_INTERACTION"
-    or stateMachine.get_state() is None): #state machine hasn't started yet - word probably came from input arguments
-        wordReceived = message.data;
-        print('Received word');
-    else:
-        wordReceived = None; #ignore 
-          
-def onNewChildReceived(message):
-    if(naoWriting):
-            postureProxy.goToPosture("StandInit", 0.3)
-    if(naoSpeaking):
-        if(alternateSidesLookingAt):    
-            global nextSideToLookAt
-            lookAndAskForFeedback(introPhrase,nextSideToLookAt);
-        else:
-            lookAndAskForFeedback(introPhrase,personSide);
-    #clear screen
-    pub_clear.publish(Empty());
-    rospy.sleep(0.5);
 
 def waitForWord(infoFromPrevState):
     global wordReceived
@@ -654,6 +592,7 @@ def waitForWord(infoFromPrevState):
     infoForNextState = {'state_cameFrom': "WAITING_FOR_WORD"};
     if(wordReceived is None):
         nextState = "WAITING_FOR_WORD";
+        rospy.sleep(0.1); #don't check again immediately
     else:
         infoForNextState['wordReceived'] = wordReceived;
         wordReceived = None;
@@ -663,28 +602,16 @@ def waitForWord(infoFromPrevState):
         nextState = "STOPPING";
         pub_camera_status.publish(False); #turn camera off
     return nextState, infoForNextState
-    
-def onFeedbackReceived(message):
-    global feedbackReceived 
-    if(stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
-        or stateMachine.get_state() == "WAITING_FOR_FEEDBACK" 
-        or stateMachine.get_state() == "WAITING_FOR_LETTER_TO_FINISH" ):
-        feedbackReceived = message; #replace any existing feedback with new
-        print('Received feedback');
-    elif(stateMachine.get_state() == "RESPONDING_TO_FEEDBACK"):
-        feedbackReceived = None; #ignore feedback
 
-feedbackReceived = None;
+
 def waitForFeedback(infoFromPrevState):
     
     if(infoFromPrevState['state_cameFrom'] != "WAITING_FOR_FEEDBACK"):
         print('------------------------------------------ WAITING_FOR_FEEDBACK');
         pub_camera_status.publish(True); #turn camera on
         
-    #default behaviour is to loop
-    nextState = "WAITING_FOR_FEEDBACK";
-    infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"};
-    
+    nextState = None;
+        
     global feedbackReceived    
     if(feedbackReceived is not None):
         infoForNextState['feedbackReceived'] = feedbackReceived;
@@ -721,10 +648,20 @@ def waitForFeedback(infoFromPrevState):
         
     if(nextState != 'WAITING_FOR_FEEDBACK'):
         pub_camera_status.publish(False); #turn camera off
+    
+    if(nextState is None):
+        #default behaviour is to loop
+        rospy.sleep(0.1); #don't check again immediately
+        nextState = "WAITING_FOR_FEEDBACK";
+        infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"};
+    
     return nextState, infoForNextState    
+
 
 #def respondToTabletDisconnect(infoFromPrevState):
  #   infoForNextState = {'state_toReturnTo': "PUBLISHING_LETTER"}
+ 
+ 
 infoToRestore_waitForRobotToConnect = None;
 def waitForRobotToConnect(infoFromPrevState):
     global infoToRestore_waitForRobotToConnect
@@ -737,16 +674,16 @@ def waitForRobotToConnect(infoFromPrevState):
     infoForNextState = {'state_cameFrom': "WAITING_FOR_ROBOT_TO_CONNECT"};
     
     #if(robotWatchdog.isResponsive() or not naoConnected):
-    if(True):
+    if(True): #don't use watchdog for now
         infoForNextState = infoToRestore_waitForRobotToConnect;
-        try:
-            nextState = infoForNextState['state_goTo'].pop(0);
-        except:
-            import pdb; pdb.set_trace();
+        nextState = infoForNextState['state_goTo'].pop(0);
+    else:
+        rospy.sleep(0.1); #don't check again immediately
     
     if(stopRequestReceived):
         nextState = "STOPPING";
     return nextState, infoForNextState
+    
     
 infoToRestore_waitForTabletToConnect = None;
 def waitForTabletToConnect(infoFromPrevState):
@@ -762,10 +699,114 @@ def waitForTabletToConnect(infoFromPrevState):
     if(tabletWatchdog.isResponsive()): #reconnection - send message to wherever it was going
         infoForNextState = infoToRestore_waitForTabletToConnect;
         nextState = infoForNextState['state_goTo'].pop(0);
-    
+    else:
+        rospy.sleep(0.1); #don't check again immediately
+        
     if(stopRequestReceived):
         nextState = "STOPPING";
     return nextState, infoForNextState    
+    
+
+# -------------------------------------------------------------- HELPER METHODS
+
+def downsampleShape(shape):
+    #downsample user-drawn shape so appropriate size for shapeLearner
+    numPointsInShape = len(shape)/2;
+    x_shape = shape[0:numPointsInShape];
+    y_shape = shape[numPointsInShape:];
+    
+    if isinstance(x_shape,numpy.ndarray): #convert arrays to lists for interp1d
+        x_shape = (x_shape.T).tolist()[0];
+        y_shape = (y_shape.T).tolist()[0];
+        
+    #make shape have the same number of points as the shape_modeler
+    t_current = numpy.linspace(0, 1, numPointsInShape);
+    t_desired = numpy.linspace(0, 1, numPoints_shapeModeler);
+    f = interpolate.interp1d(t_current, x_shape, kind='cubic');
+    x_shape = f(t_desired);
+    f = interpolate.interp1d(t_current, y_shape, kind='cubic');
+    y_shape = f(t_desired);
+       
+    shape = [];
+    shape[0:numPoints_shapeModeler] = x_shape;
+    shape[numPoints_shapeModeler:] = y_shape;
+
+    shape = ShapeModeler.normaliseShapeHeight(numpy.array(shape));
+    shape = numpy.reshape(shape, (-1, 1)); #explicitly make it 2D array with only one column
+
+    return shape
+
+def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, deltaT):      
+    if(startTime!=t0):
+        penUpToFirst = True;
+    else:
+        penUpToFirst = False;
+    
+    traj = Path();
+    traj.header.frame_id = FRAME#headerString;
+    traj.header.stamp = rospy.Time.now()+rospy.Duration(delayBeforeExecuting);
+    shape = ShapeModeler.normaliseShapeHeight(shape);
+    numPointsInShape_orig = len(shape)/2;   
+    
+    x_shape = shape[0:numPointsInShape_orig];
+    y_shape = shape[numPointsInShape_orig:];
+    
+    if(downsample):
+        #make shape have the appropriate number of points
+        t_current = numpy.linspace(0, 1, numPointsInShape_orig);
+        t_desired = numpy.linspace(0, 1, numDesiredShapePoints);
+        f = interpolate.interp1d(t_current, x_shape[:,0], kind='cubic');
+        x_shape = f(t_desired);
+        f = interpolate.interp1d(t_current, y_shape[:,0], kind='cubic');
+        y_shape = f(t_desired);
+
+        numPointsInShape = len(x_shape);
+        downsampleFactor = numPointsInShape_orig/float(numPointsInShape);
+    else:
+        numPointsInShape = numPointsInShape_orig;
+
+    for i in range(numPointsInShape):
+        point = PoseStamped();
+
+        point.pose.position.x = x_shape[i]*sizeScale_width;
+        point.pose.position.y = -y_shape[i]*sizeScale_height;
+        
+        point.pose.position.x+= + shapeCentre[0];
+        point.pose.position.y+= + shapeCentre[1];
+        
+        point.header.frame_id = FRAME;
+        point.header.stamp = rospy.Time(startTime+i*deltaT+t0); #@TODO allow for variable time between points for now
+
+        if(penUpToFirst and i==0):
+            point.header.seq = 1;
+
+        traj.poses.append(deepcopy(point));
+
+    if(downsample):
+        return traj, downsampleFactor
+    else:
+        return traj
+    
+def lookAtTablet():
+    if(effector=="RArm"):   #tablet will be on our right
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_right,0.2);
+    else: 
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_left,0.2);
+    
+def lookAndAskForFeedback(toSay,side):
+    if(naoWriting):
+        #put arm down
+        motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.3)
+    
+    if(side=="Right"):   #person will be on our right
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_right,0.2);
+    else:                   #person will be on our left
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_left,0.2);
+        
+    if(naoSpeaking):
+        textToSpeech.say(toSay);
+        print('NAO: '+toSay);
+
 
 ### --------------------------------------------------------------- MAIN
 shapesLearnt = [];
@@ -774,7 +815,7 @@ shapeLearners = [];
 currentWord = [];
 settings_shapeLearners = [];
 
-shapeFinished = False;
+
 if __name__ == "__main__":
 
     datasetDirectory = rospy.get_param('~dataset_directory','default');
@@ -784,6 +825,7 @@ if __name__ == "__main__":
         installDirectory = fileName.split('/lib')[0];
         datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/uji_pen_chars2';
     '''
+    #@TODO reenable command line usage
     #parse arguments
     import argparse
     parser = argparse.ArgumentParser(description='Publish shapes on the \
