@@ -1,8 +1,22 @@
 #!/usr/bin/env python
 
 """
-Listens for gesture events on different topics and converts them into
-appropriate feedback messages for shape_learning interaction nodes.
+Listens for interaction events from the tablet and converts them into
+appropriate messages for shape_learning interaction nodes.
+
+Currently implemented:
+- Receiving user-drawn shapes (demonstrations for learning alg.) as a series
+of Path messages of strokes and processing the shape by keeping only the 
+longest stroke and determining which shape being shown by the display_manager 
+the demonstration was for.
+- Receiving the location of a gesture on the tablet which represents which 
+shape to give priority to if the demonstration was drawn next to multiple
+shapes (if using the 'basedOnClosestShapeToPosition' method to map user demo to
+intended shape).
+
+Implemented but not in use: 
+- Receiving touch and long-touch gestures and converting that to feedback for
+the learning algorithm from when it was touch-feedback only.
 """
 
 import rospy
@@ -19,14 +33,6 @@ from letter_learning_interaction.msg import Shape as ShapeMsg
 
 positionToShapeMappingMethod = 'basedOnClosestShapeToPosition';
 shapePreprocessingMethod = "longestStroke";
-
-def listenForAllGestures():
-    global touch_subscriber, gesture_subscriber;
-    #listen for touch events on the tablet
-    touch_subscriber = rospy.Subscriber(TOUCH_TOPIC, PointStamped, touchInfoManager);
-        
-    #listen for touch events on the tablet
-    gesture_subscriber = rospy.Subscriber(GESTURE_TOPIC, PointStamped, gestureManager); 
 
 
 # ---------------------------------------------------- LISTENING FOR USER SHAPE
@@ -187,7 +193,6 @@ def getShapeCode_basedOnShapeAtPosition(location):
         
     return shapeType_demoFor
     
-activeShapeForDemonstration_type = None;
 def getShapeCode_basedOnClosestShapeToPosition(location):
     global demoShapeReceived, activeShapeForDemonstration_type
     try:
@@ -197,10 +202,12 @@ def getShapeCode_basedOnClosestShapeToPosition(location):
         request.location.y = location[1];
         response = closest_shapes_to_location(request);
         closestShapes_type = response.shape_type_code;
+        
         if(len(closestShapes_type)>1 and activeShapeForDemonstration_type is not None):
+            #in the event of a "tie"'
             try: #see if active shape is in list
                 dummyIndex = closestShapes_type.index(activeShapeForDemonstration_type);
-                shapeType_demoFor = activeShapeForDemonstration_type;
+                shapeType_demoFor = activeShapeForDemonstration_type; #give it priority
             except ValueError: #just use first in list otherwise
                 shapeType_demoFor = closestShapes_type[0];
         else: #just use first in list
@@ -211,7 +218,30 @@ def getShapeCode_basedOnClosestShapeToPosition(location):
         shapeType_demoFor = -1;
 
     return shapeType_demoFor
+
+# ----------------- PROCESS GESTURES FOR SETTING ACTIVE SHAPE FOR DEMONSTRATION
+activeShapeForDemonstration_type = None;
+def onSetActiveShapeGesture(message):
+    global activeShapeForDemonstration_type
     
+    gestureLocation = [message.point.x, message.point.y];
+    #map gesture location to shape drawn
+    try:
+        shape_at_location = rospy.ServiceProxy('shape_at_location', shapeAtLocation);
+        request = shapeAtLocationRequest();
+        request.location.x = gestureLocation[0];
+        request.location.y = gestureLocation[1];
+        response = shape_at_location(request);
+        shapeType_code = response.shape_type_code;
+        shapeID = response.shape_id;
+    except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+        
+    if(shapeType_code != -1 and shapeID != -1):
+        activeShapeForDemonstration_type = shapeType_code;
+        print('Setting active shape to shape ' + str(shapeType_code));
+
+'''  
     
 # ----------------------------------------------------- PROCESSING TOUCH EVENTS
 prevTouchTime = 0;   
@@ -269,7 +299,7 @@ def touchInfoManager(pointStamped):
     listenForAllGestures();
             
             
-# --------------------------------------------------- PROCESSING GESTURE EVENTS
+# ------------------------------------------------ PROCESSING LONG-TOUCH EVENTS
 def gestureManager(pointStamped):
     global touch_subscriber, gesture_subscriber, prevTouchTime
     touch_subscriber.unregister(); #unregister regardless of outcome, and re-subscribe if necessary
@@ -320,31 +350,46 @@ def gestureManager(pointStamped):
         print('Ignoring touch because it was too close to the one before');
     
     listenForAllGestures();
+    
+def listenForAllGestures():
+    global touch_subscriber, gesture_subscriber;
+    #listen for touch events on the tablet
+    touch_subscriber = rospy.Subscriber(TOUCH_TOPIC, PointStamped, touchInfoManager);
+        
+    #listen for touch events on the tablet
+    gesture_subscriber = rospy.Subscriber(GESTURE_TOPIC, PointStamped, gestureManager); 
 
+'''
 
 if __name__ == "__main__":
 
     rospy.init_node("tablet_input_interpreter");
+    '''
     #Topic for location of 'new shape like this one' gesture
     TOUCH_TOPIC = rospy.get_param('~touch_info_topic','touch_info');         
     #Topic for location of 'shape good enough' gesture
     GESTURE_TOPIC = rospy.get_param('~gesture_info_topic','gesture_info');  
     #Name of topic to publish feedback on
-    FEEDBACK_TOPIC = rospy.get_param('~shape_feedback_topic','shape_feedback'); 
+    FEEDBACK_TOPIC = rospy.get_param('~shape_feedback_topic','shape_feedback');
+    pub_feedback = rospy.Publisher(FEEDBACK_TOPIC, String); 
+    listenForAllGestures(); #start touch and long-touch subscribers
+    '''
     
+    #Name of topic to get gestures representing the active shape for demonstration
+    GESTURE_TOPIC = rospy.get_param('~gesture_info_topic','gesture_info');
     #Name of topic to get user drawn raw shapes on
     USER_DRAWN_SHAPES_TOPIC = rospy.get_param('~user_drawn_shapes_topic','user_drawn_shapes');
     #Name of topic to publish processed shapes on
     PROCESSED_USER_SHAPE_TOPIC = rospy.get_param('~processed_user_shape_topic','user_shapes_processed');
 
+    #listen for gesture representing active demo shape 
+    gesture_subscriber = rospy.Subscriber(GESTURE_TOPIC, PointStamped, onSetActiveShapeGesture); 
     
     #listen for user-drawn shapes
     shape_subscriber = rospy.Subscriber(USER_DRAWN_SHAPES_TOPIC, Path, userShapePreprocessor);
     
-    pub_feedback = rospy.Publisher(FEEDBACK_TOPIC, String);
-    pub_shapes = rospy.Publisher(PROCESSED_USER_SHAPE_TOPIC, ShapeMsg);
 
-    listenForAllGestures();
+    pub_shapes = rospy.Publisher(PROCESSED_USER_SHAPE_TOPIC, ShapeMsg);
     
     #initialise display manager for shapes (manages positioning of shapes)
     rospy.wait_for_service('shape_at_location'); 

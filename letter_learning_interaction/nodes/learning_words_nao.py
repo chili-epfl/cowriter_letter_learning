@@ -55,7 +55,6 @@ SHAPE_TOPIC_DOWNSAMPLED = rospy.get_param('~trajectory_output_nao_topic','/write
 #tablet params        
 CLEAR_SURFACE_TOPIC = rospy.get_param('~clear_writing_surface_topic','clear_screen');
 SHAPE_FINISHED_TOPIC = rospy.get_param('~shape_writing_finished_topic','shape_finished');
-GESTURE_TOPIC = rospy.get_param('~gesture_info_topic','gesture_info');
 
 #interaction params
 WORDS_TOPIC = rospy.get_param('~words_to_write_topic','words_to_write');
@@ -98,26 +97,6 @@ pub_traj = rospy.Publisher(SHAPE_TOPIC, Path);
 pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path);
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty);
 
-activeShapeForDemonstration_type = None;
-def onSetActiveShapeGesture(message):
-    global activeShapeForDemonstration_type
-    
-    gestureLocation = [message.point.x, message.point.y];
-    #map gesture location to shape drawn
-    try:
-        shape_at_location = rospy.ServiceProxy('shape_at_location', shapeAtLocation);
-        request = shapeAtLocationRequest();
-        request.location.x = gestureLocation[0];
-        request.location.y = gestureLocation[1];
-        response = shape_at_location(request);
-        shapeType_code = response.shape_type_code;
-        shapeID = response.shape_id;
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
-        
-    if(shapeType_code != -1 and shapeID != -1):
-        activeShapeForDemonstration_type = shapeType_code;
-        print('Setting active shape to ' + wordManager.shapeAtIndexInCurrentCollection(activeShapeForDemonstration_type));
 
 demoShapeReceived = None;
 def onUserDrawnShapeReceived(shape):
@@ -836,13 +815,7 @@ if __name__ == "__main__":
     stateMachine.add_state("EXIT", None, end_state=True);
     stateMachine.set_start("WAITING_FOR_ROBOT_TO_CONNECT");
     infoForStartState = {'state_goTo': ["STARTING_INTERACTION"], 'state_cameFrom': None};
-    
-    #subscribe to feedback topic with a feedback manager which will pass messages to appropriate shapeLearners
-    #feedback_subscriber = rospy.Subscriber(FEEDBACK_TOPIC, String, onFeedbackReceived);
-    
-    #listen for gesture representing active demo shape 
-    gesture_subscriber = rospy.Subscriber(GESTURE_TOPIC, PointStamped, onSetActiveShapeGesture); 
-    
+
     #listen for a new child signal
     new_child_subscriber = rospy.Subscriber(NEW_CHILD_TOPIC, String, onNewChildReceived);
     
