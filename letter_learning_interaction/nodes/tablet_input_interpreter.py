@@ -70,7 +70,8 @@ def userShapePreprocessor(message):
 
 # ------------------------------------------------------- PROCESSING USER SHAPE
 def onUserDrawnShapeReceived(path, shapePreprocessingMethod, positionToShapeMappingMethod):
-            
+    global activeShapeForDemonstration_type 
+    
     #preprocess to turn multiple strokes into one path
     if(shapePreprocessingMethod == 'longestStroke'):
         path = processShape_longestStroke(strokes); 
@@ -110,12 +111,10 @@ def onUserDrawnShapeReceived(path, shapePreprocessingMethod, positionToShapeMapp
     
     if(shapeType_demoFor == -1):# or response.shape_id == -1): 
         print("Ignoring demo because not for valid shape");
-    else:
-        #shapeType = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor);
-        
+    else:      
         demoShapeReceived = Shape(path=path, shapeType_code=shapeType_demoFor);
-        #activeShapeForDemonstration_type = shapeType_demoFor;
-        #send to learning_words_nao
+        activeShapeForDemonstration_type = shapeType_demoFor;
+        print('Setting active shape to shape ' + str(shapeType_demoFor));
         
         shapeMessage = makeShapeMessage(demoShapeReceived);
         pub_shapes.publish(shapeMessage);
@@ -194,7 +193,7 @@ def getShapeCode_basedOnShapeAtPosition(location):
     return shapeType_demoFor
     
 def getShapeCode_basedOnClosestShapeToPosition(location):
-    global demoShapeReceived, activeShapeForDemonstration_type
+    global activeShapeForDemonstration_type
     try:
         closest_shapes_to_location = rospy.ServiceProxy('closest_shapes_to_location', closestShapesToLocation);
         request = closestShapesToLocationRequest();
