@@ -83,7 +83,7 @@ include_directories(
  install(PROGRAMS
    nodes/display_manager_server.py
    nodes/word_card_detector.py
-   nodes/gesture_manager.py
+   nodes/tablet_input_interpreter.py
    nodes/learning_words_nao.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )

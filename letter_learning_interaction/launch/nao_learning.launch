@@ -118,7 +118,7 @@
     <node pkg="letter_learning_interaction" type="display_manager_server.py" name="display_manager_server"/>
 
     <!-- Start the gesture listener, which will map gestures to the relevant shape -->
-    <node pkg="letter_learning_interaction" type="gesture_manager.py" name="gesture_manager">   
+    <node pkg="letter_learning_interaction" type="tablet_input_interpreter.py" name="tablet_input_interpreter">   
         <param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
         <param name="touch_info_topic" type="str" value="$(arg touch_info_topic)"/>
         <param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>

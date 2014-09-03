@@ -324,7 +324,7 @@ def gestureManager(pointStamped):
 
 if __name__ == "__main__":
 
-    rospy.init_node("gesture_listener");
+    rospy.init_node("tablet_input_interpreter");
     #Topic for location of 'new shape like this one' gesture
     TOUCH_TOPIC = rospy.get_param('~touch_info_topic','touch_info');         
     #Topic for location of 'shape good enough' gesture

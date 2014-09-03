@@ -11,7 +11,7 @@ Provided nodes:
 
 - `display_manager_server.py`: provides services which allow for access to a `ShapeDisplayManager`'s methods by other ROS nodes. I.e., allows multiple nodes to position shapes on the display (as needed by a shape learning algorithm) and request which shapes are present at a particular location (as needed to process user feedback on shapes), etc.
 
-- `gesture_manager.py`: listens for generic gesture occurances and translates them into shape-specific gestures based on the location at which they occurred. [requires a running `display_manager_server` node]
+- `tablet_input_interpreter.py`: listens for tablet inputs from the user and translates them into shape-specific events based on the location at which they occurred. [requires a running `display_manager_server` node]
 
 - `word_card_detector.py`: listens for frames which represent fiducial markers for a dictionary of words, and publishes the associated words (used to request a word to be written by the user). Tested with [chilitags for ROS](https://github.com/chili-epfl/ros_markers).
 
