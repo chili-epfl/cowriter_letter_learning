@@ -893,9 +893,9 @@ if __name__ == "__main__":
     rospy.sleep(2.0);   #Allow some time for the subscribers to do their thing, 
                         #or the first message will be missed (eg. first traj on tablet, first clear request locally)
     
-    from watchdog.watchdog import Watchdog #TODO: Make a ROS server so that *everyone* can access the connection statuses
+    from letter_learning_interaction.watchdog import Watchdog #TODO: Make a ROS server so that *everyone* can access the connection statuses
     tabletWatchdog = Watchdog('watchdog_clear/tablet', 0.4);
-    robotWatchdog = Watchdog('watchdog_clear/robot', 0.8);
+    #robotWatchdog = Watchdog('watchdog_clear/robot', 0.8);
     
     if(naoConnected):
     
@@ -936,4 +936,4 @@ if __name__ == "__main__":
     rospy.spin();
 
     tabletWatchdog.stop();
-    robotWatchdog.stop();
+    #robotWatchdog.stop();
