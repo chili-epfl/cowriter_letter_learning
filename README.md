@@ -16,6 +16,8 @@ roslaunch letter_learning_interaction nao_learning.launch use_robot_in_interacti
 
 `rostopic pub /words_to_write std_msgs/String "use" -1` to send words to write (e.g. 'use') manually.
 
+*Note that console output can be viewed with `rosrun rqt_console rqt_console`.*
+
 ![Photo of word learning app progress (initial).](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/cow_initial.png)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Photo of word learning app progress (final).](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/cow_final.png)
 
 *An example of the system learning the word 'cow' (blue) based on user demonstrations with the tablet (green).*
@@ -30,8 +32,10 @@ roslaunch letter_learning_interaction nao_learning.launch
 
 *(The camera device may be specified by appending `camera_device:=/dev/video1`, for example.)*
 *(Alternatively, `rostopic pub /words_to_write std_msgs/String "use" -1` may be used to send words to write (e.g. 'use') manually, without detecting cards.)*
+*Note that console output can be viewed with `rosrun rqt_console rqt_console`.*
+
 ####With a [ROS-enabled Nao](https://github.com/ros-nao/nao_robot)
-(With the `shape_learner` app deployed on the tablet and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/tags5-9_wordgame_robotWriting.pdf) printed (robot's camera will be used))
+(With the `shape_learner` app deployed on the tablet and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/res/tags5-9_wordgame_robotWriting.pdf) printed (robot's camera will be used))
 
 Install chrony on the computer so that the robot may sync its clock.
 
@@ -55,6 +59,8 @@ On the computer acting as the ROS master:
 ```
 roslaunch letter_learning_interaction nao_learning.launch use_sim_nao:=false nao_ip:=(nao's IP) use_external_camera:=false
 ```
+
+*Note that console output can be viewed with `rosrun rqt_console rqt_console`.*
 
 Dependencies
 ------------
