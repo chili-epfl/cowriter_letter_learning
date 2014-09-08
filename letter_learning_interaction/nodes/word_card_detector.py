@@ -47,9 +47,9 @@ if __name__=="__main__":
                 t = tf_listener.getLatestCommonTime(CAMERA_FRAME, tag)
                 (trans,rot) = tf_listener.lookupTransform(CAMERA_FRAME, tag, t)
                 tagDetected = True;
-                print('found tag: '+tags_words_mapping[tag]);
+                rospy.loginfo('found tag: '+tags_words_mapping[tag]);
             except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException),e:
-                print e
+                rospy.err(e);
                 tagDetected = False;
             '''
             tagDetected = tf_listener.frameExists(tag);  
@@ -59,7 +59,7 @@ if __name__=="__main__":
                 prevTagDetected = tag;
                 wordToPublish = tags_words_mapping[tag];
                                 
-                print('Publishing tag: '+wordToPublish);
+                rospy.loginfo('Publishing tag: '+wordToPublish);
                 if(wordToPublish == 'stop'):
                     message = Empty();
                     pub_stop.publish(message);

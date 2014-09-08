@@ -114,7 +114,7 @@ def onUserDrawnShapeReceived(shape):
     or stateMachine.get_state() == "ASKING_FOR_FEEDBACK"):
         demoShapeReceived = shape; #replace any existing feedback with new
         demoShapeReceived.shapeType = wordManager.shapeAtIndexInCurrentCollection(demoShapeReceived.shapeType_code);
-        print('Received demonstration for '+demoShapeReceived.shapeType);
+        rospy.loginfo('Received demonstration for '+demoShapeReceived.shapeType);
     else:
         pass; #ignore feedback
         
@@ -135,13 +135,12 @@ def onStopRequestReceived(message):
     stopRequestReceived = True;
            
 def onClearScreenReceived(message):
-    print('Clearing display');
+    rospy.loginfo('Clearing display');
     try:
         clear_all_shapes = rospy.ServiceProxy('clear_all_shapes', clearAllShapes);
         resp1 = clear_all_shapes();
-        print( resp1.success);
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+        rospy.logerr("Service call failed: %s",e)
     
 wordReceived = None;
 def onWordReceived(message):
@@ -152,7 +151,7 @@ def onWordReceived(message):
     or stateMachine.get_state() == "STARTING_INTERACTION"
     or stateMachine.get_state() is None): #state machine hasn't started yet - word probably came from input arguments
         wordReceived = message.data;
-        print('Received word');
+        rospy.loginfo('Received word: '+wordReceived);
     else:
         wordReceived = None; #ignore 
  
@@ -163,7 +162,7 @@ def onFeedbackReceived(message):
         or stateMachine.get_state() == "WAITING_FOR_FEEDBACK" 
         or stateMachine.get_state() == "WAITING_FOR_LETTER_TO_FINISH" ):
         feedbackReceived = message; #replace any existing feedback with new
-        print('Received feedback');
+        rospy.loginfo('Received feedback');
     elif(stateMachine.get_state() == "RESPONDING_TO_FEEDBACK"):
         feedbackReceived = None; #ignore feedback
           
@@ -183,7 +182,8 @@ def onNewChildReceived(message):
 # ------------------------------- METHODS FOR DIFFERENT STATES IN STATE MACHINE
     
 def respondToDemonstration(infoFromPrevState):
-    print('------------------------------------------ RESPONDING_TO_DEMONSTRATION');
+    #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION');
+    rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION");
     demoShapeReceived = infoFromPrevState['demoShapeReceived'];
     shape = demoShapeReceived.path;
     shapeIndex_demoFor = demoShapeReceived.shapeType_code;
@@ -200,10 +200,10 @@ def respondToDemonstration(infoFromPrevState):
         if(demo_response_phrases_counter==len(demo_response_phrases)):
             demo_response_phrases_counter = 0;
         textToSpeech.say(toSay);
-        print('NAO: '+toSay);  
+        rospy.loginfo('NAO: '+toSay);  
     
 
-    print("Received demo for " + shapeType);
+    rospy.loginfo("Received demo for " + shapeType);
     shape = wordManager.respondToDemonstration(shapeIndex_demoFor, shape);
     state_goTo = deepcopy(drawingLetterSubstates);
     nextState = state_goTo.pop(0);
@@ -212,7 +212,8 @@ def respondToDemonstration(infoFromPrevState):
     
     
 def publishShape(infoFromPrevState):
-    print('------------------------------------------ PUBLISHING_LETTER'); 
+    #print('------------------------------------------ PUBLISHING_LETTER'); 
+    rospy.loginfo("STATE: PUBLISHING_LETTER");
     shapesToPublish = infoFromPrevState['shapesToPublish'];
     shape = shapesToPublish.pop(0); #publish next remaining shape (and remove from list)
 
@@ -244,7 +245,8 @@ def publishShape(infoFromPrevState):
     return nextState, infoForNextState
     
 def publishWord(infoFromPrevState):
-    print('------------------------------------------ PUBLISHING_WORD'); 
+    #print('------------------------------------------ PUBLISHING_WORD'); 
+    rospy.loginfo("STATE: PUBLISHING_WORD");
     shapesToPublish = infoFromPrevState['shapesToPublish'];
     
     wholeTraj = Path();
@@ -294,7 +296,8 @@ def waitForShapeToFinish(infoFromPrevState):
     
     #first time into this state preparations
     if(infoFromPrevState['state_cameFrom'] != "WAITING_FOR_LETTER_TO_FINISH"):
-        print('------------------------------------------ WAITING_FOR_LETTER_TO_FINISH');
+        #print('------------------------------------------ WAITING_FOR_LETTER_TO_FINISH');
+        rospy.loginfo("STATE: WAITING_FOR_LETTER_TO_FINISH");
         infoToRestore_waitForShapeToFinish = infoFromPrevState;
     
     nextState = None;
@@ -333,7 +336,8 @@ def waitForShapeToFinish(infoFromPrevState):
           
 #NOTE THAT THIS WAS FOR TOUCH-BASED FEEDBACK, WHICH ISN'T USED ANYMORE
 def respondToFeedback(infoFromPrevState):
-    print('------------------------------------------ RESPONDING_TO_FEEDBACK'); 
+    #print('------------------------------------------ RESPONDING_TO_FEEDBACK'); 
+    rospy.loginfo("STATE: RESPONDING_TO_FEEDBACK");
     global shapeFinished #@TODO: make class attribute
     
     stringReceived = infoFromPrevState['feedbackReceived'];
@@ -347,13 +351,13 @@ def respondToFeedback(infoFromPrevState):
     try:
         shapeIndex_messageFor = int(feedback[0]);
     except:
-        print('Shape type index must be an integer. Received ' + feedback[0]);
+        rospy.logerr('Shape type index must be an integer. Received ' + feedback[0]);
         processMessage = False;
         
     try:
         bestShape_index = int(feedback[1]);
     except:
-        print('Best shape index must be an integer. Received ' + feedback[0]);
+        rospy.logerr('Best shape index must be an integer. Received ' + feedback[0]);
         processMessage = False;
     
     noNewShape = False; #usually make a new shape based on feedback
@@ -363,24 +367,24 @@ def respondToFeedback(infoFromPrevState):
             noNewShape = True;
         else:
             processMessage = False;
-            print('Unknown message received in feedback string: '+feedbackMessage);   
+            rospy.logerr('Unknown message received in feedback string: '+feedbackMessage);   
                 
     if(processMessage):    
         if(noNewShape): #just respond to feedback, don't make new shape 
             if(naoSpeaking):
                 toSay = 'Ok, thanks for helping me';
-                print('NAO: '+toSay);
+                rospy.loginfo('NAO: '+toSay);
                 textToSpeech.say(toSay); 
             #pass feedback to shape manager
             response = wordManager.feedbackManager(shapeIndex_messageFor, bestShape_index, noNewShape);
             if(response == -1):
-                print('Something\'s gone wrong in the feedback manager');
+                rospy.logerr('Something\'s gone wrong in the feedback manager');
             
         else:
             if(naoSpeaking):
                 shape_messageFor = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_messageFor);
                 toSay = 'Ok, I\'ll work on the '+shape_messageFor;
-                print('NAO: '+toSay);
+                rospy.loginfo('NAO: '+toSay);
                 textToSpeech.say(toSay);
             
             [numItersConverged, newShape] = wordManager.feedbackManager(shapeIndex_messageFor, bestShape_index, noNewShape);
@@ -407,10 +411,10 @@ def respondToFeedback(infoFromPrevState):
     
         
 def respondToNewWord(infoFromPrevState):
-    print('------------------------------------------ RESPONDING_TO_NEW_WORD'); 
+    #print('------------------------------------------ RESPONDING_TO_NEW_WORD'); 
+    rospy.loginfo("STATE: RESPONDING_TO_NEW_WORD");
     global shapeFinished, wordManager #@TODO make class attribute 
     wordToLearn = infoFromPrevState['wordReceived'];
-    print("Cheers");
     wordSeenBefore = wordManager.newCollection(wordToLearn);
     if(naoSpeaking):
         if(wordSeenBefore):
@@ -433,7 +437,7 @@ def respondToNewWord(infoFromPrevState):
             if(word_response_phrases_counter==len(word_response_phrases)):
                 word_response_phrases_counter = 0;
     
-        print('NAO: '+toSay);
+        rospy.loginfo('NAO: '+toSay);
         textToSpeech.say(toSay);    
         
     #clear screen
@@ -464,12 +468,13 @@ def respondToNewWord(infoFromPrevState):
     
     
 def askForFeedback(infoFromPrevState): 
-    print('------------------------------------------ ASKING_FOR_FEEDBACK'); 
+    #print('------------------------------------------ ASKING_FOR_FEEDBACK'); 
+    rospy.loginfo("STATE: ASKING_FOR_FEEDBACK");
     centre = infoFromPrevState['centre']; 
-    print(infoFromPrevState['state_cameFrom'])
+    rospy.loginfo(infoFromPrevState['state_cameFrom'])
     if(infoFromPrevState['state_cameFrom'] == "PUBLISHING_WORD"):
         wordWritten = infoFromPrevState['wordWritten'];
-        print('Asking for feedback on word '+wordWritten);
+        rospy.loginfo('Asking for feedback on word '+wordWritten);
         if(naoSpeaking):
             global asking_phrases_after_word_counter
             try:
@@ -493,7 +498,7 @@ def askForFeedback(infoFromPrevState):
             lookAtTablet();
     elif(infoFromPrevState['state_cameFrom'] == "PUBLISHING_LETTER"):
         shapeType = infoFromPrevState['shapePublished'];
-        print('Asking for feedback on letter '+shapeType);
+        rospy.loginfo('Asking for feedback on letter '+shapeType);
         if(naoSpeaking):
             global asking_phrases_after_feedback_counter
             try:
@@ -518,7 +523,7 @@ def askForFeedback(infoFromPrevState):
     '''
     #this doesn't get entered into anymore
     elif(infoFromPrevState['state_cameFrom'] == "RESPONDING_TO_DEMONSTRATION"):
-        print('Asking for feedback on demo response...');
+        rospy.loginfo('Asking for feedback on demo response...');
         if(naoSpeaking):
             lookAndAskForFeedback("How about now?");
             lookAtTablet();
@@ -540,17 +545,19 @@ def askForFeedback(infoFromPrevState):
 
 
 def respondToTestCard(infoFromPrevState):
-    print('------------------------------------------ RESPONDING_TO_TEST_CARD');
-    print('Show me a test word');
+    #print('------------------------------------------ RESPONDING_TO_TEST_CARD');
+    rospy.loginfo("STATE: RESPONDING_TO_TEST_CARD");
     if(naoSpeaking):
         textToSpeech.say(testPhrase);
+        rospy.loginfo("NAO: "+testPhrase);
     nextState = "WAITING_FOR_WORD";
     infoForNextState = {'state_cameFrom': "RESPONDING_TO_TEST_CARD"};
     return nextState, infoForNextState
   
   
 def stopInteraction(infoFromPrevState):
-    print('------------------------------------------ STOPPING');
+    #print('------------------------------------------ STOPPING');
+    rospy.loginfo("STATE: STOPPING");
     if(naoSpeaking):
         textToSpeech.say(thankYouPhrase);   
     if(naoConnected):
@@ -563,9 +570,8 @@ def stopInteraction(infoFromPrevState):
      
      
 def startInteraction(infoFromPrevState):
-    print('------------------------------------------ STARTING_INTERACTION');
-    print('Hey I\'m Nao');
-    print("Do you have any words for me to write?");
+    #print('------------------------------------------ STARTING_INTERACTION');
+    rospy.loginfo("STATE: STARTING_INTERACTION");
     if(naoSpeaking):
         if(alternateSidesLookingAt):    
             global nextSideToLookAt
@@ -584,7 +590,8 @@ def waitForWord(infoFromPrevState):
     global wordReceived
     
     if(infoFromPrevState['state_cameFrom'] != "WAITING_FOR_WORD"):
-        print('------------------------------------------ WAITING_FOR_WORD');
+        #print('------------------------------------------ WAITING_FOR_WORD');
+        rospy.loginfo("STATE: WAITING_FOR_WORD");
         pub_camera_status.publish(True); #turn camera on
     if(infoFromPrevState['state_cameFrom'] == "STARTING_INTERACTION"):
         pass
@@ -607,7 +614,8 @@ def waitForWord(infoFromPrevState):
 def waitForFeedback(infoFromPrevState):
     
     if(infoFromPrevState['state_cameFrom'] != "WAITING_FOR_FEEDBACK"):
-        print('------------------------------------------ WAITING_FOR_FEEDBACK');
+        #print('------------------------------------------ WAITING_FOR_FEEDBACK');
+        rospy.loginfo("STATE: WAITING_FOR_FEEDBACK");
         pub_camera_status.publish(True); #turn camera on
         
     nextState = None;
@@ -667,7 +675,8 @@ def waitForRobotToConnect(infoFromPrevState):
     global infoToRestore_waitForRobotToConnect
     #FORWARDER STATE
     if(infoFromPrevState['state_cameFrom'] != "WAITING_FOR_ROBOT_TO_CONNECT"):
-        print('------------------------------------------ waiting_for_robot_to_connect');
+        #print('------------------------------------------ waiting_for_robot_to_connect');
+        rospy.loginfo("STATE: waiting_for_robot_to_connect");
         infoToRestore_waitForRobotToConnect = infoFromPrevState;
     
     nextState = "WAITING_FOR_ROBOT_TO_CONNECT";
@@ -690,7 +699,8 @@ def waitForTabletToConnect(infoFromPrevState):
     global infoToRestore_waitForTabletToConnect
     #FORWARDER STATE
     if(infoFromPrevState['state_cameFrom'] != "WAITING_FOR_TABLET_TO_CONNECT"):
-        print('------------------------------------------ waiting_for_tablet_to_connect');
+        #print('------------------------------------------ waiting_for_tablet_to_connect');
+        rospy.loginfo("STATE: waiting_for_tablet_to_connect");
         infoToRestore_waitForTabletToConnect = infoFromPrevState;
     
     nextState = "WAITING_FOR_TABLET_TO_CONNECT";
@@ -805,7 +815,7 @@ def lookAndAskForFeedback(toSay,side):
         
     if(naoSpeaking):
         textToSpeech.say(toSay);
-        print('NAO: '+toSay);
+        rospy.loginfo('NAO: '+toSay);
 
 
 ### --------------------------------------------------------------- MAIN
@@ -878,7 +888,7 @@ if __name__ == "__main__":
         
     #initialise display manager for shapes (manages positioning of shapes)
     from letter_learning_interaction.srv import *
-    print('Waiting for display manager services to become available');
+    rospy.loginfo('Waiting for display manager services to become available');
     rospy.wait_for_service('clear_all_shapes');
     
     rospy.sleep(2.0);   #Allow some time for the subscribers to do their thing, 
@@ -920,7 +930,7 @@ if __name__ == "__main__":
         message.data = wordToLearn;
         onWordReceived(message);
     else:
-        print('Waiting for word to write');
+        rospy.loginfo('Waiting for word to write');
     '''
     stateMachine.run(infoForStartState);    
     

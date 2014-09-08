@@ -45,12 +45,12 @@ def userShapePreprocessor(message):
         if(len(strokes) > 0):                
             onUserDrawnShapeReceived(strokes, shapePreprocessingMethod, positionToShapeMappingMethod); 
         else:
-            print('empty demonstration. ignoring')
+            rospy.loginfo('empty demonstration. ignoring')
             
         strokes = [];
 
     else: #new stroke in shape - add it
-        print('Got stroke to write with '+str(len(message.poses))+' points');
+        rospy.loginfo('Got stroke to write with '+str(len(message.poses))+' points');
         x_shape = [];
         y_shape = [];
         for poseStamped in message.poses:
@@ -107,14 +107,14 @@ def onUserDrawnShapeReceived(path, shapePreprocessingMethod, positionToShapeMapp
         result = response.success;
         #todo: do something if unsuccessful
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+        rospy.logerr("Service call failed: %s",e);
     
     if(shapeType_demoFor == -1):# or response.shape_id == -1): 
-        print("Ignoring demo because not for valid shape");
+        rospy.loginfo("Ignoring demo because not for valid shape");
     else:      
         demoShapeReceived = Shape(path=path, shapeType_code=shapeType_demoFor);
         activeShapeForDemonstration_type = shapeType_demoFor;
-        print('Setting active shape to shape ' + str(shapeType_demoFor));
+        rospy.loginfo('Setting active shape to shape ' + str(shapeType_demoFor));
         
         shapeMessage = makeShapeMessage(demoShapeReceived);
         pub_shapes.publish(shapeMessage);
@@ -172,7 +172,7 @@ def getShapeCode_basedOnRowOfScreen(location):
         shapeIndex_demoFor = response.row;
         
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+        rospy.logerr("Service call failed: %s",e);
         shapeType_demoFor = -1;
         
     return shapeType_demoFor
@@ -187,7 +187,7 @@ def getShapeCode_basedOnShapeAtPosition(location):
         shapeType_demoFor = response.shape_type_code;
         
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+        rospy.logerr("Service call failed: %s",e);
         shapeType_demoFor = -1;
         
     return shapeType_demoFor
@@ -213,7 +213,7 @@ def getShapeCode_basedOnClosestShapeToPosition(location):
             shapeType_demoFor = closestShapes_type[0];
             
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+        rospy.logerr("Service call failed: %s",e);
         shapeType_demoFor = -1;
 
     return shapeType_demoFor
@@ -234,11 +234,11 @@ def onSetActiveShapeGesture(message):
         shapeType_code = response.shape_type_code;
         shapeID = response.shape_id;
     except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+        rospy.logerr("Service call failed: %s",e);
         
     if(shapeType_code != -1 and shapeID != -1):
         activeShapeForDemonstration_type = shapeType_code;
-        print('Setting active shape to shape ' + str(shapeType_code));
+        rospy.loginfo('Setting active shape to shape ' + str(shapeType_code));
 
 '''  
     
@@ -264,14 +264,14 @@ def touchInfoManager(pointStamped):
             shapeType_code = response.shape_type_code;
             shapeID = response.shape_id;
         except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+            rospy.logerr("Service call failed: %s",e);
         
         
         if(shapeType_code == -1):
-            print('Touch not inside the display area');
+            rospy.loginfo('Touch not inside the display area');
             
         elif(shapeID == -1):
-            print('Ignoring touch because not on valid shape');
+            rospy.loginfo('Ignoring touch because not on valid shape');
         else:
             try:
                 possible_to_display = rospy.ServiceProxy('possible_to_display_shape', isPossibleToDisplayNewShape);
@@ -279,21 +279,21 @@ def touchInfoManager(pointStamped):
                 ableToDisplay = response.is_possible.data;
             except rospy.ServiceException, e:
                 ableToDisplay = False;
-                print "Service call failed: %s"%e
+                rospy.logerr("Service call failed: %s",e);
             
             if(not ableToDisplay):#no more space
-                print('Can\'t fit anymore letters on the screen');
+                rospy.loginfo('Can\'t fit anymore letters on the screen');
 
             else:
                               
-                print('Shape touched: '+str(shapeType_code)+'_'+str(shapeID))  
+                rospy.loginfo('Shape touched: '+str(shapeType_code)+'_'+str(shapeID))  
                 feedbackMessage = String();
                 feedbackMessage.data = str(shapeType_code) + '_' + str(shapeID);
                 pub_feedback.publish(feedbackMessage);
                 
         prevTouchTime = touchTime;
     else:
-        print('Ignoring touch because it was too close to the one before');
+        rospy.loginfo('Ignoring touch because it was too close to the one before');
 
     listenForAllGestures();
             
@@ -317,36 +317,36 @@ def gestureManager(pointStamped):
             response = shape_at_location(request);
             shapeType_code = response.shape_type_code;
             shapeID = response.shape_id;
-            #print( response.location);
+            #rospy.loginfo( response.location);
         except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+            rospy.logerr("Service call failed: %s",e);
                   
         if(shapeType_code == -1):
-            print('Touch not inside the display area');
+            rospy.loginfo('Touch not inside the display area');
         elif(shapeID == -1):
-            print('Ignoring touch because not on valid shape');
+            rospy.loginfo('Ignoring touch because not on valid shape');
         else:
             try:
                 possible_to_display = rospy.ServiceProxy('possible_to_display_shape', isPossibleToDisplayNewShape);
                 response = possible_to_display(shape_type_code = shapeType_code);
                 ableToDisplay = response.is_possible.data;
-                #print( response.location);
+                #rospy.loginfo( response.location);
             except rospy.ServiceException, e:
                 ableToDisplay = False;
-                print "Service call failed: %s"%e
+                rospy.logerr("Service call failed: %s",e);
             
             if(not ableToDisplay):#no more space
-                print('Can\'t fit anymore letters on the screen');
+                rospy.loginfo('Can\'t fit anymore letters on the screen');
             else:  
                 
-                print('Shape selected as best: '+str(shapeType_code)+'_'+str(shapeID))
+                rospy.loginfo('Shape selected as best: '+str(shapeType_code)+'_'+str(shapeID))
                 feedbackMessage = String();
                 feedbackMessage.data = str(shapeType_code) + '_' + str(shapeID) + '_noNewShape';
                 pub_feedback.publish(feedbackMessage);
                     
         prevTouchTime = touchTime;
     else:
-        print('Ignoring touch because it was too close to the one before');
+        rospy.loginfo('Ignoring touch because it was too close to the one before');
     
     listenForAllGestures();
     
