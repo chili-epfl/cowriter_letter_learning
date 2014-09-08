@@ -97,10 +97,10 @@ numPoints_shapeModeler = 70; #Number of points used by ShapeModelers (@todo this
 
 drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER'];
 
-pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool);
-pub_traj = rospy.Publisher(SHAPE_TOPIC, Path);
-pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path);
-pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty);
+pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool, queue_size=10);
+pub_traj = rospy.Publisher(SHAPE_TOPIC, Path, queue_size=10);
+pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path, queue_size=10);
+pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10);
 
 
 
@@ -167,11 +167,11 @@ def onFeedbackReceived(message):
         feedbackReceived = None; #ignore feedback
           
 def onNewChildReceived(message):
+    global nextSideToLookAt
     if(naoWriting):
             postureProxy.goToPosture("StandInit", 0.3)
     if(naoSpeaking):
-        if(alternateSidesLookingAt):    
-            global nextSideToLookAt
+        if(alternateSidesLookingAt):
             lookAndAskForFeedback(introPhrase,nextSideToLookAt);
         else:
             lookAndAskForFeedback(introPhrase,personSide);
@@ -468,6 +468,7 @@ def respondToNewWord(infoFromPrevState):
     
     
 def askForFeedback(infoFromPrevState): 
+    global nextSideToLookAt
     #print('------------------------------------------ ASKING_FOR_FEEDBACK'); 
     rospy.loginfo("STATE: ASKING_FOR_FEEDBACK");
     centre = infoFromPrevState['centre']; 
@@ -485,8 +486,7 @@ def askForFeedback(infoFromPrevState):
             if(asking_phrases_after_word_counter==len(asking_phrases_after_word)):
                 asking_phrases_after_word_counter = 0;
                
-            if(alternateSidesLookingAt):    
-                global nextSideToLookAt
+            if(alternateSidesLookingAt):  
                 lookAndAskForFeedback(toSay,nextSideToLookAt);
                 if(nextSideToLookAt == 'Left'):
                     nextSideToLookAt = 'Right';
@@ -509,8 +509,7 @@ def askForFeedback(infoFromPrevState):
             if(asking_phrases_after_feedback_counter==len(asking_phrases_after_feedback)):
                 asking_phrases_after_feedback_counter = 0;
                 
-            if(alternateSidesLookingAt):    
-                global nextSideToLookAt
+            if(alternateSidesLookingAt):  
                 lookAndAskForFeedback(toSay,nextSideToLookAt);
                 if(nextSideToLookAt == 'Left'):
                     nextSideToLookAt = 'Right';
@@ -570,11 +569,11 @@ def stopInteraction(infoFromPrevState):
      
      
 def startInteraction(infoFromPrevState):
+    global nextSideToLookAt
     #print('------------------------------------------ STARTING_INTERACTION');
     rospy.loginfo("STATE: STARTING_INTERACTION");
     if(naoSpeaking):
-        if(alternateSidesLookingAt):    
-            global nextSideToLookAt
+        if(alternateSidesLookingAt): 
             lookAndAskForFeedback(introPhrase,nextSideToLookAt);
         else:
             lookAndAskForFeedback(introPhrase,personSide);

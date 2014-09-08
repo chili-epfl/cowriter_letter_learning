@@ -29,9 +29,9 @@ if __name__=="__main__":
     else:
         raise RuntimeError('Requested language ('+ LANGUAGE + ') not supported');
         
-    pub_words = rospy.Publisher(WORDS_TOPIC, String)
-    pub_stop = rospy.Publisher(STOP_TOPIC, Empty)
-    pub_test = rospy.Publisher(TEST_TOPIC, Empty)
+    pub_words = rospy.Publisher(WORDS_TOPIC, String, queue_size=10)
+    pub_stop = rospy.Publisher(STOP_TOPIC, Empty, queue_size=10)
+    pub_test = rospy.Publisher(TEST_TOPIC, Empty, queue_size=10)
     
        
     tf_listener = tf.TransformListener(True, rospy.Duration(0.5))

@@ -388,7 +388,7 @@ if __name__ == "__main__":
     shape_subscriber = rospy.Subscriber(USER_DRAWN_SHAPES_TOPIC, Path, userShapePreprocessor);
     
 
-    pub_shapes = rospy.Publisher(PROCESSED_USER_SHAPE_TOPIC, ShapeMsg);
+    pub_shapes = rospy.Publisher(PROCESSED_USER_SHAPE_TOPIC, ShapeMsg, queue_size=10);
     
     #initialise display manager for shapes (manages positioning of shapes)
     rospy.wait_for_service('shape_at_location'); 
