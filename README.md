@@ -1,4 +1,4 @@
-#cowriter_letter_learning: Teaching a robot to write
+#The CoWriter project: Teaching a robot to write
 
 A set of ROS nodes which facilitate the user interaction allowing a robot to be taught handwriting.
 
@@ -6,11 +6,24 @@ A set of ROS nodes which facilitate the user interaction allowing a robot to be 
 
 *An example result of the interaction achievable with cowriter_letter_learning: Words are requested by showing cards to the robot with [chilitags](https://github.com/chili-epfl/chilitags) on them; children correct the robot's [simulated handwriting](https://github.com/chili-epfl/nao_writing) by providing demonstrations on a tablet, which are used to update the robot's [shape learning algorithm](https://github.com/chili-epfl/shape_learning).*
 
+
+Dependencies
+------------
+- [shape_learning](https://github.com/chili-epfl/shape_learning) for the letter learning algorithm,
+- [nao_writing](https://github.com/chili-epfl/nao_writing) for the synchronised trajectory tracing capabilities for the robot,
+- [ROS for Android](https://github.com/rosjava/rosjava_core) for compiling the tablet app,
+- [ros_markers](https://github.com/chili-epfl/ros_markers) for detecting the word cards,
+- [gscam](https://github.com/ros-drivers/gscam) for using an external webcam to detect word cards instead of the Nao's camera.
+
+For more information, see the readmes in internal directories and the parameters which are available for specification in the launch files.
+
+
 ##Usage
 ####With only a tablet
 (With the `shape_learner` app deployed on the tablet)
 
 ```
+export ROS_IP=(computer's IP)
 roslaunch letter_learning_interaction nao_learning.launch use_robot_in_interaction:=false
 ```
 
@@ -24,9 +37,10 @@ roslaunch letter_learning_interaction nao_learning.launch use_robot_in_interacti
 
 ####With a webots simulated Nao running
 
-(With the `shape_learner` app deployed on the tablet, a webcam plugged in, and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/doc/tags5-9_wordgame_robotWriting.pdf) printed)
+(With the `shape_learner` app deployed on the tablet, a webcam plugged in, and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/res/tags5-9_wordgame_robotWriting.pdf) printed)
 
 ```
+export ROS_IP=(computer's IP)
 roslaunch letter_learning_interaction nao_learning.launch
 ```
 
@@ -57,18 +71,9 @@ roslaunch nao_bringup nao.launch
 On the computer acting as the ROS master:
 
 ```
+export ROS_IP=(computer's IP)
 roslaunch letter_learning_interaction nao_learning.launch use_sim_nao:=false nao_ip:=(nao's IP) use_external_camera:=false
 ```
 
 *Note that console output can be viewed with `rosrun rqt_console rqt_console`.*
-
-Dependencies
-------------
-- [shape_learning](https://github.com/chili-epfl/shape_learning) for the letter learning algorithm,
-- [nao_writing](https://github.com/chili-epfl/nao_writing) for the synchronised trajectory tracing capabilities for the robot,
-- [ROS for Android](https://github.com/rosjava/rosjava_core) for the tablet app,
-- (optional) [ros_markers](https://github.com/chili-epfl/ros_markers) for detecting the word cards,
-- (optional) [gscam](https://github.com/ros-drivers/gscam) for using an external webcam to detect word cards.
-
-For more information, see the readmes in internal directories and the parameters which are available for specification in the launch files.
 
