@@ -129,7 +129,7 @@ public class MainActivity extends RosActivity {
                 float y = e.getY();
                 Log.e(TAG, "Double tap at: ["+String.valueOf(x)+", "+String.valueOf(y)+"]");
                 //publish touch event in world coordinates instead of tablet coordinates
-                interactionManager.publishGestureInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(DisplayMethods.getTabletResolution()[1] - y));
+                interactionManager.publishGestureInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(displayManager.getHeight() - y));
                 longClicked = true;
             }
         });
@@ -159,7 +159,7 @@ public class MainActivity extends RosActivity {
 
         Log.e(TAG, "Ready to execute");
         if(replayingUserShapes){
-
+            // allow two tablets to run at the same time without their nodes competing
             nodeMainExecutor.execute(displayManager, nodeConfiguration.setNodeName("android_gingerbread2/display_manager"));
             nodeMainExecutor.execute(interactionManager, nodeConfiguration.setNodeName("android_gingerbread2/interaction_manager"));
         }
@@ -187,7 +187,7 @@ public class MainActivity extends RosActivity {
         //convert from pixels in 'tablet frame' to metres in 'robot frame'
         for(double[] point : points){
             point[0] = DisplayMethods.PX2M(point[0]);                        //x coordinate
-            point[1] = DisplayMethods.PX2M(DisplayMethods.getTabletResolution()[1] - point[1]); //y coordinate
+            point[1] = DisplayMethods.PX2M(displayManager.getHeight() - point[1]); //y coordinate
         }
         Log.e(TAG, "Adding stroke to message");
         userDrawnMessage.add(points);
@@ -202,7 +202,7 @@ public class MainActivity extends RosActivity {
             double yMin = Double.POSITIVE_INFINITY;
             for(double[] point : points){
                 point[0] = DisplayMethods.PX2M(point[0]);                        //x coordinate
-                point[1] = DisplayMethods.PX2M(DisplayMethods.getTabletResolution()[1] - point[1]); //y coordinate
+                point[1] = DisplayMethods.PX2M(displayManager.getHeight() - point[1]); //y coordinate
                 //update the max and min values of the stroke
                 if(point[0]>xMax){
                     xMax = point[0];
@@ -269,7 +269,7 @@ public class MainActivity extends RosActivity {
                     int y = (int)event.getY();
                     Log.e(TAG, "Touch at: ["+String.valueOf(x)+", "+String.valueOf(y)+"]");
                     //publish touch event in world coordinates instead of tablet coordinates
-                    interactionManager.publishTouchInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(DisplayMethods.getTabletResolution()[1] - y));
+                    interactionManager.publishTouchInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(displayManager.getHeight() - y));
                 }
                 break;
         }

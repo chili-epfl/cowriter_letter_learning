@@ -25,7 +25,7 @@ public class DisplayMethods {
     private final java.lang.String TAG = this.getClass().toString();
     private int timeoutDuration_mSecs = -1; //time in ms to leave the trajectory displayed before removing it (negative displays indefinitely)
     private static double PPI_tablet = 298.9; //pixels per inch of android tablet
-    private static int[] resolution_tablet = {2560, 1600};
+
     private int mDisplayHeight, mDisplayWidth;
     private MessageCallable<Integer, Integer> onShapeDrawingFinishCallable;
     private double mDisplayRate = 1.0;
@@ -39,7 +39,6 @@ public class DisplayMethods {
     public TurnPathIntoAnimation getTurnPathIntoAnimation(){
         return mTurnPathIntoAnimation;
     }
-    public static int[] getTabletResolution(){ return resolution_tablet; }
 
     public void setDisplayHeight(int height){
         mDisplayHeight = height;
@@ -133,7 +132,7 @@ public class DisplayMethods {
             AnimationDrawable animationDrawable = new AnimationDrawable();
 
             android.graphics.Path trajPath = new android.graphics.Path();
-            trajPath.moveTo((float) (M2PX(points.get(0).getPose().getPosition().getX()) + shapeCentre_offset[0]), resolution_tablet[1] - (float) (M2PX(points.get(0).getPose().getPosition().getY()) + shapeCentre_offset[1]));
+            trajPath.moveTo((float) (M2PX(points.get(0).getPose().getPosition().getX()) + shapeCentre_offset[0]), mDisplayHeight - (float) (M2PX(points.get(0).getPose().getPosition().getY()) + shapeCentre_offset[1]));
 
             long timeUntilFirstFrame_msecs = Math.round(points.get(0).getHeader().getStamp().totalNsecs() / 1000000.0);
             animationDrawable.addFrame(blankShapeDrawable, (int) (timeUntilFirstFrame_msecs/mDisplayRate));
@@ -150,9 +149,9 @@ public class DisplayMethods {
                 boolean penUp_next = p_next.getHeader().getSeq() == 1;
                 ShapeDrawable shapeDrawable;
                 if(penUp_next){
-                    shapeDrawable = addPointToShapeDrawablePath((float) (shapeCentre_offset[0]+M2PX(tx.getX())), resolution_tablet[1] - (float) (shapeCentre_offset[1]+M2PX(tx.getY())), trajPath, penUp);
+                    shapeDrawable = addPointToShapeDrawablePath((float) (shapeCentre_offset[0]+M2PX(tx.getX())), mDisplayHeight - (float) (shapeCentre_offset[1]+M2PX(tx.getY())), trajPath, penUp);
                 }else{
-                    shapeDrawable = addPointToShapeDrawablePath_quad((float) (shapeCentre_offset[0]+M2PX(tx.getX())), resolution_tablet[1] - (float) (shapeCentre_offset[1]+M2PX(tx.getY())), (float) (shapeCentre_offset[0]+M2PX(tx_next.getX())), resolution_tablet[1] - (float) (shapeCentre_offset[1]+M2PX(tx_next.getY())), trajPath, penUp);
+                    shapeDrawable = addPointToShapeDrawablePath_quad((float) (shapeCentre_offset[0]+M2PX(tx.getX())), mDisplayHeight - (float) (shapeCentre_offset[1]+M2PX(tx.getY())), (float) (shapeCentre_offset[0]+M2PX(tx_next.getX())), mDisplayHeight - (float) (shapeCentre_offset[1]+M2PX(tx_next.getY())), trajPath, penUp);
                 }
                 //determine the duration of the frame for the animation
                 Duration frameDuration = points.get(i + 1).getHeader().getStamp().subtract(p.getHeader().getStamp()); // take difference between times to get appropriate duration for frame to be displayed
@@ -166,7 +165,7 @@ public class DisplayMethods {
             boolean penUp = p.getHeader().getSeq() == 1;
             geometry_msgs.Point tx = p.getPose().getPosition();
             float pointToAdd_x = (float) (M2PX(tx.getX()) + shapeCentre_offset[0]);
-            float pointToAdd_y = resolution_tablet[1] - (float) (M2PX(tx.getY()) + shapeCentre_offset[1]);
+            float pointToAdd_y = mDisplayHeight - (float) (M2PX(tx.getY()) + shapeCentre_offset[1]);
             ShapeDrawable shapeDrawable = addPointToShapeDrawablePath(pointToAdd_x, pointToAdd_y, trajPath, penUp);
 
 
