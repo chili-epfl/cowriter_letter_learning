@@ -2,11 +2,11 @@
 '''Publish watchdog clears on the /watchdog_clear/device_name topic every
 time_between_clears seconds.
 '''
-#@TODO make work with msec precision
+
 #@TODO possibly better to just use rospy.sleep instead of the watchdog clearer class
 
 import rospy
-from watchdog.watchdog import WatchdogClearer
+from letter_learning_interaction.watchdog import WatchdogClearer
 
 if __name__ == "__main__":
     #parse arguments
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     rospy.init_node(args.device_name + '_watchdog_clearer');
 
     wdc=WatchdogClearer('watchdog_clear/'+args.device_name, args.time_between_clears);
-    print('Starting new watchdog_clearer for '+args.device_name);
+    rospy.loginfo('Starting new watchdog_clearer for '+args.device_name);
 
 
     while not rospy.is_shutdown():

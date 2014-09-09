@@ -18,7 +18,7 @@ class Watchdog:
         self.handler = userHandler if userHandler is not None else self.defaultHandler;
         self.subscriber = rospy.Subscriber(self.clearTopic, Empty, self.onClear);
         
-        print('Starting new timer');
+        rospy.loginfo('Starting new timer');
         self.responsive = True;
         self.running = True;
         self.timer = Timer(self.timeout_sec, self.handler);
@@ -28,7 +28,7 @@ class Watchdog:
         self.timer.cancel(); #clear timer
         if(self.running):
             if(not self.responsive):
-                print('Re-connection');
+                rospy.loginfo('Re-connection');
             self.responsive = True;
             self.timer = Timer(self.timeout_sec, self.handler); #schedule new timeout
             self.timer.start();
@@ -36,7 +36,7 @@ class Watchdog:
     def stop(self):
         self.timer.cancel(); #stop timer
         self.running = False;
-        print('Stopped');
+        rospy.loginfo('Stopped');
         
     def restart(self):
         self.responsive = True;
@@ -45,7 +45,7 @@ class Watchdog:
         self.timer.start();
     
     def defaultHandler(self):
-        print('Haven\'t received a clear on \'' + self.clearTopic + '\' topic');
+        rospy.loginfo('Haven\'t received a clear on \'' + self.clearTopic + '\' topic');
         self.responsive = False;
         
     def isResponsive(self):
@@ -60,10 +60,10 @@ class Watchdog:
 class WatchdogClearer:
     """Publishes watchdog timer clears over a topic.
     """    
-    def __init__(self, clearTopic, timeBetweenClears_sec):#TO DO: make timer work with ms precision...
+    def __init__(self, clearTopic, timeBetweenClears_sec):
         self.clearTopic = clearTopic;
         self.timeBetweenClears_sec = timeBetweenClears_sec;
-        self.publisher = rospy.Publisher(self.clearTopic, Empty);
+        self.publisher = rospy.Publisher(self.clearTopic, Empty, queue_size=10);
 
         self.timer = Timer(self.timeBetweenClears_sec, self.clearWatchdog);
         self.timer.start();
@@ -76,9 +76,9 @@ class WatchdogClearer:
     
     def stop(self):
         self.timer.cancel();
-        print('Stopping publishing clears');
+        rospy.loginfo('Stopping publishing clears');
         
     def restart(self):
-        print('Restarting publishing clears');
+        rospy.loginfo('Restarting publishing clears');
         self.timer = Timer(self.timeBetweenClears_sec, self.clearWatchdog);
         self.timer.start();
