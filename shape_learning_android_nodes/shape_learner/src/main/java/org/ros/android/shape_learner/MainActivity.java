@@ -49,7 +49,7 @@ import android.widget.ImageButton;
 
 
 public class MainActivity extends RosActivity {
-    private InteractionManager interactionManager;
+    private InteractionManagerNode interactionManagerNode;
     private static final java.lang.String TAG = "shapeLearner";
     private SystemDrawingViewNode systemDrawingViewNode;
     private UserDrawingView userDrawingsView;
@@ -129,7 +129,7 @@ public class MainActivity extends RosActivity {
                 float y = e.getY();
                 Log.e(TAG, "Double tap at: ["+String.valueOf(x)+", "+String.valueOf(y)+"]");
                 //publish touch event in world coordinates instead of tablet coordinates
-                interactionManager.publishGestureInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(systemDrawingViewNode.getHeight() - y));
+                interactionManagerNode.publishGestureInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(systemDrawingViewNode.getHeight() - y));
                 longClicked = true;
             }
         });
@@ -137,14 +137,14 @@ public class MainActivity extends RosActivity {
 
     @Override
     protected void init(NodeMainExecutor nodeMainExecutor) {
-        interactionManager = new InteractionManager();
-        interactionManager.setTouchInfoTopicName("touch_info");
-        interactionManager.setGestureInfoTopicName("gesture_info");
-        interactionManager.setClearScreenTopicName("clear_screen");
+        interactionManagerNode = new InteractionManagerNode();
+        interactionManagerNode.setTouchInfoTopicName("touch_info");
+        interactionManagerNode.setGestureInfoTopicName("gesture_info");
+        interactionManagerNode.setClearScreenTopicName("clear_screen");
         systemDrawingViewNode.setClearScreenTopicName("clear_screen");
         systemDrawingViewNode.setClearWatchdogTopicName("watchdog_clear/tablet");
         systemDrawingViewNode.setFinishedShapeTopicName("shape_finished");
-        interactionManager.setUserDrawnShapeTopicName("user_drawn_shapes");
+        interactionManagerNode.setUserDrawnShapeTopicName("user_drawn_shapes");
 
         NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress());
         // At this point, the user has already been prompted to either enter the URI
@@ -161,11 +161,11 @@ public class MainActivity extends RosActivity {
         if(replayingUserShapes){
             // allow two tablets to run at the same time without their nodes competing
             nodeMainExecutor.execute(systemDrawingViewNode, nodeConfiguration.setNodeName("android_gingerbread2/display_manager"));
-            nodeMainExecutor.execute(interactionManager, nodeConfiguration.setNodeName("android_gingerbread2/interaction_manager"));
+            nodeMainExecutor.execute(interactionManagerNode, nodeConfiguration.setNodeName("android_gingerbread2/interaction_manager"));
         }
         else{
             nodeMainExecutor.execute(systemDrawingViewNode, nodeConfiguration.setNodeName("android_gingerbread/display_manager"));
-            nodeMainExecutor.execute(interactionManager, nodeConfiguration.setNodeName("android_gingerbread/interaction_manager"));
+            nodeMainExecutor.execute(interactionManagerNode, nodeConfiguration.setNodeName("android_gingerbread/interaction_manager"));
         }
 
         DisplayMethods displayMethods = new DisplayMethods();
@@ -222,7 +222,7 @@ public class MainActivity extends RosActivity {
             double xCentre = xMax - xRange/2.0;
             double yCentre = yMax - yRange/2.0;
             Log.e(TAG, "Publishing finger stroke");
-            interactionManager.publishGestureInfoMessage(xCentre, yCentre);
+            interactionManagerNode.publishGestureInfoMessage(xCentre, yCentre);
         }
         userGestureView.requestClear();
     }
@@ -234,7 +234,7 @@ public class MainActivity extends RosActivity {
     private View.OnClickListener sendListener = new View.OnClickListener() {
         public void onClick(View v) {
             Log.e(TAG, "onClick() called - send button");
-            interactionManager.publishUserDrawnMessageMessage(userDrawnMessage);
+            interactionManagerNode.publishUserDrawnMessageMessage(userDrawnMessage);
             userDrawnMessage.clear(); //empty/reinitialise message
         }
     };
@@ -269,7 +269,7 @@ public class MainActivity extends RosActivity {
                     int y = (int)event.getY();
                     Log.e(TAG, "Touch at: ["+String.valueOf(x)+", "+String.valueOf(y)+"]");
                     //publish touch event in world coordinates instead of tablet coordinates
-                    interactionManager.publishTouchInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(systemDrawingViewNode.getHeight() - y));
+                    interactionManagerNode.publishTouchInfoMessage(DisplayMethods.PX2M(x), DisplayMethods.PX2M(systemDrawingViewNode.getHeight() - y));
                 }
                 break;
         }

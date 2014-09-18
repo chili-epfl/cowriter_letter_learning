@@ -33,7 +33,7 @@ import std_msgs.Empty;
  * @author Deanna Hood
  */
 
-class InteractionManager extends AbstractNodeMain {
+class InteractionManagerNode extends AbstractNodeMain {
     private static final java.lang.String TAG = "InteractionManager";
     private String touchInfoTopicName;
     private ConnectedNode connectedNode;
