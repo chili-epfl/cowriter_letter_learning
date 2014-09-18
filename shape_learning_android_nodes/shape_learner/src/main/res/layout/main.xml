@@ -18,13 +18,13 @@
 android:orientation="vertical" android:layout_width="fill_parent"
 android:layout_height="fill_parent" android:background="#35517cff">
 
-    <org.ros.android.shape_learner.DisplayManager
+    <org.ros.android.shape_learner.SystemDrawingViewNode
         android:layout_height="fill_parent"
         android:id="@+id/image" android:layout_width="match_parent"
         android:layout_gravity="center"
         android:baselineAligned="false">
         <!--android:src="@drawable/icon"-->
-    </org.ros.android.shape_learner.DisplayManager>
+    </org.ros.android.shape_learner.SystemDrawingViewNode>
     <org.ros.android.shape_learner.UserDrawingView
         android:layout_height="fill_parent"
         android:id="@+id/signature" android:layout_width="fill_parent"
