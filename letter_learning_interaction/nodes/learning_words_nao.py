@@ -300,7 +300,8 @@ def waitForShapeToFinish(infoFromPrevState):
         rospy.loginfo("STATE: WAITING_FOR_LETTER_TO_FINISH");
         infoToRestore_waitForShapeToFinish = infoFromPrevState;
     
-    nextState = None;
+    infoForNextState = {'state_cameFrom': 'WAITING_FOR_LETTER_TO_FINISH'}
+    nextState = None
         
     #once shape has finished
     global shapeFinished
@@ -616,8 +617,9 @@ def waitForFeedback(infoFromPrevState):
         #print('------------------------------------------ WAITING_FOR_FEEDBACK');
         rospy.loginfo("STATE: WAITING_FOR_FEEDBACK");
         pub_camera_status.publish(True); #turn camera on
-        
-    nextState = None;
+    
+    infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"}
+    nextState = None
         
     global feedbackReceived    
     if(feedbackReceived is not None):
