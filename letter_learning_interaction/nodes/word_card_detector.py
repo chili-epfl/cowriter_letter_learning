@@ -38,6 +38,11 @@ if __name__=="__main__":
     rospy.sleep(0.5)
     rate = rospy.Rate(10)
     prevTagDetected = [];
+
+    # Add individual letters: tag IDs are the ASCII code of the letter
+    for char in range(ord('a'),ord('z') + 1):
+        tags_words_mapping["tag_%d" % char] = chr(char)
+
     while not rospy.is_shutdown():
         for tag in tags_words_mapping:
             '''
@@ -72,6 +77,8 @@ if __name__=="__main__":
                     pub_words.publish(message); 
                     
                 tf_listener = tf.TransformListener(True, rospy.Duration(0.1))
+                rospy.logdebug("Sleeping a bit to clear the tf cache...")
                 rospy.sleep(5) #wait till the tag times out (in the use context
                                 #it's not likely to get two words within 5s)
+                rospy.logdebug("Ok, waiting for a new word")
     rate.sleep()
