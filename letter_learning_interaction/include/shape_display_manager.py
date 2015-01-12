@@ -152,7 +152,8 @@ class ShapeDisplayManager: #TODO make implementation of abstract class/interface
             shapeType_code = [];
             shapeID = [];
             #return all of the shapes which are closest if there are multiple at the same distance
-            while(distsToLocation[closest_indexes[i]] == distsToLocation[closest_indexes[0]]):
+            while(i < len(closest_indexes) and
+                  distsToLocation[closest_indexes[i]] == distsToLocation[closest_indexes[0]]):
                 nextClosest_row = shapeIndexes[closest_indexes[i],0];
                 nextClosest_col = shapeIndexes[closest_indexes[i],1];
                 shapeType_code.append(self.shapesDrawn[nextClosest_row,nextClosest_col,0]);
