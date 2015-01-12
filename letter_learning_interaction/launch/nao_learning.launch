@@ -37,7 +37,7 @@
     <arg name="camera_publishing_status_topic" default="camera_publishing_status" />
     
     <!-- Frame of camera that will be detecting fiducial markers for words to write -->
-    <arg name="word_detector_frame_id" value="v4l_frame" if="$(arg use_external_camera)" />
+    <arg name="word_detector_frame_id" value="camera_frame" if="$(arg use_external_camera)" />
     <arg name="word_detector_frame_id" value="CameraTop_frame" unless="$(arg use_external_camera)" />
     
     <arg name="camera_image_topic" value="v4l/camera/image_raw" if="$(arg use_external_camera)" />
