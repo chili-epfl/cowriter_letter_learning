@@ -912,7 +912,7 @@ if __name__ == "__main__":
 
         postureProxy = ALProxy("ALRobotPosture", NAO_IP, port)
         textToSpeech = ALProxy("ALTextToSpeech", NAO_IP, port)   
-        textToSpeech.setLanguage(LANGUAGE)
+        textToSpeech.setLanguage(LANGUAGE.capitalize())
         #textToSpeech.setVolume(1.0);
         if(naoWriting):
             postureProxy.goToPosture("StandInit",0.2)
