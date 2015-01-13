@@ -15,4 +15,23 @@ Provided nodes:
 
 - `word_card_detector.py`: listens for frames which represent fiducial markers for a dictionary of words, and publishes the associated words (used to request a word to be written by the user). Tested with [chilitags for ROS](https://github.com/chili-epfl/ros_markers).
 
-  
+Letters dataset configuration
+-----------------------------
+
+`learning_words_nao.py` requires one training dataset per letter. You can learn
+more about these datasets (format, where to get them, how to create them...) in
+the [`shape_learning` project](https://github.com/chili-epfl/shape_learning).
+
+The launch argument `letter_model_dataset_directory` must points to a directory
+containing files (or symlink to files) named `[a-zA-Z].dat`, one per letter
+(note that these files are loaded 'on-demand', so if you know you won't be using
+a certain range of letter, you do not need the corresponding datasets).
+
+For instance, for a specific experiment, you may have a directory
+`/home/nao/datasets/expe1` containing the `.dat` file, and you would call
+`nao_learning.launch` this way:
+
+```
+$ roslaunch letter_learning_interaction nao_learning.launch letter_model_dataset_directory:=/home/nao/datasets/expe1 [...other options]
+```
+
