@@ -36,6 +36,7 @@ rospy.init_node("learning_words_nao");
 NAO_IP = rospy.get_param('~nao_ip','127.0.0.1'); #default behaviour is to connect to simulator locally
 naoSpeaking = rospy.get_param('~nao_speaking',True); #whether or not the robot should speak
 naoWriting = rospy.get_param('~nao_writing',True); #whether or not the robot should move its arms
+naoStanding = rospy.get_param('~nao_standing', True); #whether or not the robot should stand or rest on its knies 
 naoConnected = rospy.get_param('~use_robot_in_interaction',True); #whether or not the robot is being used for the interaction (looking, etc.)
 naoWriting = naoWriting and naoConnected; #use naoConnected var as the stronger property
 naoSpeaking = naoSpeaking and naoConnected;
@@ -47,8 +48,9 @@ if(NAO_HANDEDNESS.lower()=='right'):
 elif(NAO_HANDEDNESS.lower()=='left'):
     effector = "LArm"
 else: 
-    print('error in handedness param')
- 
+    print ('error in handedness param')
+
+
 #shape params       
 FRAME = rospy.get_param('~writing_surface_frame_id','writing_surface') ;  #Frame ID to publish points in
 FEEDBACK_TOPIC = rospy.get_param('~shape_feedback_topic','shape_feedback'); #Name of topic to receive feedback on
@@ -168,8 +170,13 @@ def onFeedbackReceived(message):
           
 def onNewChildReceived(message):
     global nextSideToLookAt
-    if(naoWriting):
-            postureProxy.goToPosture("StandInit", 0.3)
+    if naoWriting:
+            if naoStanding:
+                postureProxy.goToPosture("StandInit", 0.3)
+            else:
+                motionProxy.rest()
+                motionProxy.setStiffnesses(["Head", "LArm", "RArm"], 0.5)
+
     if(naoSpeaking):
         if(alternateSidesLookingAt):
             lookAndAskForFeedback(introPhrase,nextSideToLookAt);
@@ -899,7 +906,9 @@ if __name__ == "__main__":
     tabletWatchdog = Watchdog('watchdog_clear/tablet', 0.4);
     #robotWatchdog = Watchdog('watchdog_clear/robot', 0.8);
     
-    if(naoConnected):
+    rospy.loginfo("Nao configuration: writing=%s, speaking=%s (%s), standing=%s, handedness=%s" % (naoWriting, naoSpeaking, LANGUAGE, naoStanding, NAO_HANDEDNESS))
+
+    if naoConnected:
     
         from naoqi import ALBroker, ALProxy
         port = 9559;
@@ -914,10 +923,16 @@ if __name__ == "__main__":
         textToSpeech = ALProxy("ALTextToSpeech", NAO_IP, port)   
         textToSpeech.setLanguage(LANGUAGE.capitalize())
         #textToSpeech.setVolume(1.0);
-        if(naoWriting):
-            postureProxy.goToPosture("StandInit",0.2)
+        if naoWriting:
+            if naoStanding:
+                postureProxy.goToPosture("StandInit",0.2)
+                motionProxy.wbEnableEffectorControl(effector, True); #turn whole body motion control on
+            else:
+                motionProxy.rest()
+                motionProxy.setStiffnesses(["Head", "LArm", "RArm"], 0.5)
+                motionProxy.wbEnableEffectorControl(effector, False); #turn whole body motion control off
+            
             armJoints_standInit = motionProxy.getAngles(effector,True);
-            motionProxy.wbEnableEffectorControl(effector, True); #turn whole body motion control on
             
     #initialise word manager (passes feedback to shape learners and keeps history of words learnt)
     InteractionSettings.setDatasetDirectory(datasetDirectory);

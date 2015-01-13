@@ -4,6 +4,7 @@
     <arg name="use_sim_nao" default="true" /> <!-- if true, webots simulation expected to be running -->
 
     <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
+    <arg name="nao_standing" default="true" /> <!-- if false, robot will stay in the 'crouched' pose, but still writing -->
     <arg name="nao_handedness" default="right" /> 
     <arg name="person_side" default="$(arg nao_handedness)" />   
         
@@ -71,6 +72,7 @@
         <param name="language" type="str" value="$(arg language)"/>
         <param name="nao_ip" type="str" value="$(arg nao_ip_to_use)"/>
         <param name="nao_handedness" type="str" value="$(arg nao_handedness)"/>
+        <param name="nao_standing" type="bool" value="$(arg nao_standing)" />
         <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
         <param name="writing_surface_frame_id" type="str" value="$(arg writing_surface_frame_id)"/>
 
