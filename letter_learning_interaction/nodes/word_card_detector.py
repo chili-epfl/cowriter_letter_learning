@@ -7,41 +7,54 @@ import rospy
 import tf
 from std_msgs.msg import String, Empty
 
+special_tags = {'tag_17':'test',
+                'tag_302':'stop',
+                'tag_300':'next',
+                'tag_301':'prev',
+                'tag_430':'help',
+                'tag_341':'go'
+                }
+
+tags_words_mapping = {'tag_5':'cow',
+                      'tag_6':'son',
+                      'tag_7':'cue',
+                      'tag_8':'new',
+                      'tag_9':'use',
+                      'tag_10':'cou',
+                      'tag_11':'son',
+                      'tag_12':'ces',
+                      'tag_13':'une', # no tag_14: too many false positives!
+                      'tag_15':'nos',
+                      'tag_16':'ose',
+                      'tag_18':'eau'
+                      }
+
+tags_words_mapping.update(special_tags)
+
+# Add individual letters: tag IDs are the ASCII code of the letter
+for char in range(ord('a'),ord('z') + 1):
+    tags_words_mapping["tag_%d" % char] = chr(char)
+
 if __name__=="__main__":
     rospy.init_node("word_detector") 
     
     WORDS_TOPIC = rospy.get_param('~detected_words_topic','words_to_write');
+    SPECIAL_TOPIC = rospy.get_param('~special_cards_topic','special_symbols');
     STOP_TOPIC = rospy.get_param('~stop_card_detected_topic','stop_learning');
     TEST_TOPIC = rospy.get_param('~test_card_detected_topic','test_learning');
     CAMERA_FRAME = rospy.get_param('~detector_frame_id','CameraTop_frame');
 
     LANGUAGE = rospy.get_param('~language','english');
-    if(LANGUAGE.lower() == 'english'):
-        tags_words_mapping = {'tag_5':'cow', 'tag_6':'son','tag_7':'cue','tag_8':'new','tag_9':'use', #english words
-                      'tag_17':'test','tag_18':'stop' #special tags
-                          };
-    elif(LANGUAGE.lower() == 'french'):
-        #warning: tag 14 is prone to false positives!!
-        tags_words_mapping = {'tag_10':'cou','tag_11':'son','tag_12':'ces','tag_13':'une',
-                      'tag_14':'sec','tag_15':'nos','tag_16':'ose',#'tag_17':'sac','tag_18':'eau', #french words
-                      'tag_17':'test','tag_18':'stop' #special tags
-                          };
-    else:
-        raise RuntimeError('Requested language ('+ LANGUAGE + ') not supported');
-        
+
     pub_words = rospy.Publisher(WORDS_TOPIC, String, queue_size=10)
+    pub_special = rospy.Publisher(SPECIAL_TOPIC, String, queue_size=10)
     pub_stop = rospy.Publisher(STOP_TOPIC, Empty, queue_size=10)
     pub_test = rospy.Publisher(TEST_TOPIC, Empty, queue_size=10)
-    
-       
+
     tf_listener = tf.TransformListener(True, rospy.Duration(0.5))
     rospy.sleep(0.5)
     rate = rospy.Rate(10)
     prevTagDetected = [];
-
-    # Add individual letters: tag IDs are the ASCII code of the letter
-    for char in range(ord('a'),ord('z') + 1):
-        tags_words_mapping["tag_%d" % char] = chr(char)
 
     while not rospy.is_shutdown():
         for tag in tags_words_mapping:
@@ -63,19 +76,25 @@ if __name__=="__main__":
             if(tagDetected and not tag==prevTagDetected):
                 prevTagDetected = tag;
                 wordToPublish = tags_words_mapping[tag];
-                                
+
                 rospy.loginfo('Publishing tag: '+wordToPublish);
-                if(wordToPublish == 'stop'):
-                    message = Empty();
-                    pub_stop.publish(message);
-                elif(wordToPublish == 'test'):
-                    message = Empty();
-                    pub_test.publish(message);
+
+                if tag in special_tags:
+                    message = String()
+                    message.data = wordToPublish
+                    pub_special.publish(message)
+
+                    if wordToPublish == 'stop':
+                        message = Empty()
+                        pub_stop.publish(message)
+                    elif wordToPublish == 'test':
+                        message = Empty()
+                        pub_test.publish(message)
                 else:
-                    message = String();
-                    message.data = wordToPublish;
-                    pub_words.publish(message); 
-                    
+                    message = String()
+                    message.data = wordToPublish
+                    pub_words.publish(message)
+
                 tf_listener = tf.TransformListener(True, rospy.Duration(0.1))
                 rospy.logdebug("Sleeping a bit to clear the tf cache...")
                 rospy.sleep(5) #wait till the tag times out (in the use context
