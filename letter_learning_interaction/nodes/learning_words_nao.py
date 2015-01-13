@@ -8,8 +8,6 @@ receives interaction inputs e.g. which words to write and user demonstrations,
 passes these demonstrations to the learning algorithm, and publishes the 
 resulting learned shapes for the robot and tablet to draw.
 """
-
-
 import numpy
 from scipy import interpolate
 
@@ -57,6 +55,8 @@ FRAME = rospy.get_param('~writing_surface_frame_id','writing_surface')  #Frame I
 FEEDBACK_TOPIC = rospy.get_param('~shape_feedback_topic','shape_feedback') #Name of topic to receive feedback on
 SHAPE_TOPIC = rospy.get_param('~trajectory_output_topic','/write_traj') #Name of topic to publish shapes to
 SHAPE_TOPIC_DOWNSAMPLED = rospy.get_param('~trajectory_output_nao_topic','/write_traj_downsampled') #Name of topic to publish shapes to
+
+SHAPE_LOGGING_PATH = rospy.get_param('~shape_log','') # path to a log file where all learning steps will be stored
 
 #tablet params        
 CLEAR_SURFACE_TOPIC = rospy.get_param('~clear_writing_surface_topic','clear_screen')
@@ -117,7 +117,7 @@ def onUserDrawnShapeReceived(shape):
             or stateMachine.get_state() == "ASKING_FOR_FEEDBACK"):
         demoShapeReceived = shape #replace any existing feedback with new
         demoShapeReceived.shapeType = wordManager.shapeAtIndexInCurrentCollection(demoShapeReceived.shapeType_code)
-        rospy.loginfo('Received demonstration for '+demoShapeReceived.shapeType)
+        rospy.loginfo('Received demonstration for ' + demoShapeReceived.shapeType)
     else:
         pass #ignore feedback
 
@@ -937,7 +937,7 @@ if __name__ == "__main__":
 
     #initialise word manager (passes feedback to shape learners and keeps history of words learnt)
     InteractionSettings.setDatasetDirectory(datasetDirectory)
-    wordManager = ShapeLearnerManager(InteractionSettings.generateSettings)
+    wordManager = ShapeLearnerManager(InteractionSettings.generateSettings, SHAPE_LOGGING_PATH)
 
 
     '''

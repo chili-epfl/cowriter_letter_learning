@@ -19,6 +19,9 @@
 
     <!-- Where the datasets for generating letter models for the learning algorithm are stored -->
     <arg name="letter_model_dataset_directory" default="default"/> 
+
+    <!-- Where to store the full log of each of the steps of the letter learning. Empty string to avoid logging -->
+    <arg name="shape_log" default="shapes.log"/> 
     
     <!-- Inputs to learning algorithm -->
     <arg name="shape_feedback_topic" default="shape_feedback" />
@@ -74,6 +77,7 @@
         <param name="nao_handedness" type="str" value="$(arg nao_handedness)"/>
         <param name="nao_standing" type="bool" value="$(arg nao_standing)" />
         <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
+        <param name="shape_log" type="str" value="$(arg shape_log)" />
         <param name="writing_surface_frame_id" type="str" value="$(arg writing_surface_frame_id)"/>
 
         <param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
