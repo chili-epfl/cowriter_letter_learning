@@ -93,7 +93,7 @@ class InteractionSettings():
         if(datasetDirectory is None):
             raise RuntimeError("Dataset directory has not been set yet with setDatasetDirectory()")
 
-        paramsToVary = [5];            #Natural number between 1 and numPrincipleComponents, representing which principle component to vary from the template
+        paramsToVary = [3];            #Natural number between 1 and numPrincipleComponents, representing which principle component to vary from the template
         initialBounds_stdDevMultiples = numpy.array([[-6, 6]]) #Starting bounds for paramToVary, as multiples of the parameter's observed standard deviation in the dataset
         doGroupwiseComparison = True #instead of pairwise comparison with most recent two shapes
         initialParamValue = 0.0
