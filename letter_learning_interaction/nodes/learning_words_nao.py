@@ -40,6 +40,9 @@ naoWriting = naoWriting and naoConnected #use naoConnected var as the stronger p
 naoSpeaking = naoSpeaking and naoConnected
 
 LANGUAGE = rospy.get_param('~language','english')
+
+FRONT_INTERACTION = True
+
 NAO_HANDEDNESS = rospy.get_param('~nao_handedness','right')
 
 if NAO_HANDEDNESS.lower()=='right':
@@ -88,7 +91,7 @@ word_response_phrases_counter = 0
 word_again_response_phrases_counter = 0
 
 #get appropriate angles for looking at things
-headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
+headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
 
 #trajectory publishing parameters
 t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting)
@@ -807,20 +810,27 @@ def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, delta
         return traj
 
 def lookAtTablet():
-    if(effector=="RArm"):   #tablet will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_right,0.2)
-    else: 
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_left,0.2)
+    if FRONT_INTERACTION:
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_down,0.2)
+
+    else:
+        if(effector=="RArm"):   #tablet will be on our right
+            motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_right,0.2)
+        else: 
+            motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_left,0.2)
 
 def lookAndAskForFeedback(toSay,side):
     if naoWriting:
         #put arm down
         motionProxy.angleInterpolationWithSpeed(effector,armJoints_standInit, 0.3)
 
-    if(side=="Right"):   #person will be on our right
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_right,0.2)
-    else:                   #person will be on our left
-        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_left,0.2)
+    if FRONT_INTERACTION:
+        motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_front,0.2)
+    else:
+        if(side=="Right"):   #person will be on our right
+            motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_right,0.2)
+        else:                   #person will be on our left
+            motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtPerson_left,0.2)
 
     if naoSpeaking:
         textToSpeech.say(toSay)

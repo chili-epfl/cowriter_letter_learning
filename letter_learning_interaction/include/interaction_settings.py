@@ -45,11 +45,13 @@ class InteractionSettings():
     @staticmethod
     def getHeadAngles():
         #["HeadYaw", "HeadPitch"] angles
+        headAngles_lookAtTablet_down = [-0.01538, 0.512]
         headAngles_lookAtTablet_right = [-0.2, 0.08125996589660645]
         headAngles_lookAtTablet_left = [0.2, 0.08125996589660645]
+        headAngles_lookAtPerson_front = [-0.0123, 0.1825]
         headAngles_lookAtPerson_right = [-0.9639739513397217, 0.08125996589660645]
         headAngles_lookAtPerson_left = [0.9639739513397217, 0.08125996589660645]
-        return headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left
+        return  headAngles_lookAtTablet_down,headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front ,headAngles_lookAtPerson_right, headAngles_lookAtPerson_left
 
     ###---------------------------------------------- WORD LEARNING PHRASES
     @staticmethod
