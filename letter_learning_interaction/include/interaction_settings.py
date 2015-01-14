@@ -114,13 +114,16 @@ class InteractionSettings():
                 test = line.replace('[','').replace(']\n','')==shapeType
                 while test==False:
                     line = f.readline()
-                    test = line.replace('[','').replace(']\n','')==shapeType
+                    if line:
+                        test = line.replace('[','').replace(']\n','')==shapeType
+                    else:
+                        break
                 if test:
                     s = f.readline().replace('\n','')
                     initialParamValue = (float)(s)
                 else:
                     initialParamValue = 0.0
-                    raise RuntimeError("parameters not found for shape "+ shapeType +'\n'+'Default : 0.0')
+                    print("parameters not found for shape "+ shapeType +'\n'+'Default : 0.0')
 
         settings = SettingsStruct(
                     shape_learning = shapeType,
