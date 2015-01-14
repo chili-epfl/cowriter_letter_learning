@@ -103,6 +103,23 @@ class InteractionSettings():
         if not os.path.exists(datasetFile):
             raise RuntimeError("Dataset is not known for shape "+ shapeType)
 
+        datasetParam = datasetDirectory + '/params.dat'
+        if not os.path.exists(datasetParam):
+            raise RuntimeError("parameters not found for this dataset ")
+        else:
+            with open(datasetParam, 'r') as f:
+                line = f.readline()
+                test = line.replace('[','').replace(']\n','')==shapeType
+                while test==False:
+                    line = f.readline()
+                    test = line.replace('[','').replace(']\n','')==shapeType
+                if test:
+                    s = f.readline().replace('\n','')
+                    initialParamValue = (float)(s)
+                else:
+                    initialParamValue = 0.0
+                    raise RuntimeError("parameters not found for shape "+ shapeType +'\n'+'Default : 0.0')
+
         settings = SettingsStruct(
                     shape_learning = shapeType,
                     paramsToVary = paramsToVary, 
