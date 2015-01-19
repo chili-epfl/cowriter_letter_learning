@@ -264,6 +264,9 @@ def publishWord(infoFromPrevState):
     wholeTraj_downsampled = Path()
 
     startTime = t0
+
+    start_pos = None
+
     for shape in shapesToPublish:
 
         try:
@@ -277,10 +280,12 @@ def publishWord(infoFromPrevState):
         [traj_downsampled, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt) #for robot
 
         downsampleFactor = float(numPoints_shapeModeler-1)/float(numDesiredShapePoints-1)
-        traj = make_traj_msg(shape.path, shapeCentre, headerString, startTime, False, float(dt)/downsampleFactor)
+        traj = make_traj_msg(shape.path, shapeCentre, headerString, startTime, False, float(dt)/downsampleFactor, start_pos=start_pos)
         #[traj, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt)
 
         wholeTraj.poses.extend(deepcopy(traj.poses))
+        start_pos = traj.poses[-1].pose.position
+
         wholeTraj_downsampled.poses.extend(deepcopy(traj_downsampled.poses))
         startTime = traj.poses[-1].header.stamp.to_sec()+1 #start after the previous shape finishes next time
 
@@ -758,7 +763,7 @@ def downsampleShape(shape):
 
     return shape
 
-def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, deltaT):      
+def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, deltaT, start_pos=None):
     if startTime!=t0:
         penUpToFirst = True
     else:
@@ -787,14 +792,21 @@ def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, delta
     else:
         numPointsInShape = numPointsInShape_orig
 
+    if start_pos:
+        offset_x = start_pos.x - x_shape[0] * sizeScale_width
+        offset_y = start_pos.y + y_shape[0] * sizeScale_height
+    else:
+        offset_x = shapeCentre[0]
+        offset_y = shapeCentre[1]
+
     for i in range(numPointsInShape):
         point = PoseStamped()
 
         point.pose.position.x = x_shape[i]*sizeScale_width
         point.pose.position.y = -y_shape[i]*sizeScale_height
 
-        point.pose.position.x+= + shapeCentre[0]
-        point.pose.position.y+= + shapeCentre[1]
+        point.pose.position.x += offset_x
+        point.pose.position.y += offset_y
 
         point.header.frame_id = FRAME
         point.header.stamp = rospy.Time(startTime+i*deltaT+t0) #@TODO allow for variable time between points for now
