@@ -318,7 +318,14 @@ def publishWord(infoFromPrevState):
         [traj_downsampled, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt) #for robot
 
         downsampleFactor = float(numPoints_shapeModeler-1)/float(numDesiredShapePoints-1)
-        traj = make_traj_msg(shape.path, shapeCentre, headerString, startTime, False, float(dt)/downsampleFactor, start_pos=start_pos)
+        traj = make_traj_msg(shape.path, 
+                             shapeCentre, 
+                             headerString, 
+                             startTime, 
+                             False, # downsample
+                             float(dt)/downsampleFactor,
+                             start_pos=start_pos,
+                             scale_factor = LETTER_SCALES.get(shape.shapeType, 1.0))
         #[traj, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt)
 
         wholeTraj.poses.extend(deepcopy(traj.poses))
@@ -801,7 +808,14 @@ def downsampleShape(shape):
 
     return shape
 
-def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, deltaT, start_pos=None):
+def make_traj_msg(shape, 
+                  shapeCentre, 
+                  headerString, 
+                  startTime, 
+                  downsample, 
+                  deltaT, 
+                  start_pos=None,
+                  scale_factor=1.0): # the global scaling factor of the letter: a 'u' is smaller than a 'm' for instance
     if startTime!=t0:
         penUpToFirst = True
     else:
@@ -831,8 +845,8 @@ def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, delta
         numPointsInShape = numPointsInShape_orig
 
     if start_pos:
-        offset_x = start_pos.x - x_shape[0] * sizeScale_width
-        offset_y = start_pos.y + y_shape[0] * sizeScale_height
+        offset_x = start_pos.x - x_shape[0] * sizeScale_width * scale_factor
+        offset_y = start_pos.y + y_shape[0] * sizeScale_height * scale_factor
     else:
         offset_x = shapeCentre[0]
         offset_y = shapeCentre[1]
@@ -840,8 +854,8 @@ def make_traj_msg(shape, shapeCentre, headerString, startTime, downsample, delta
     for i in range(numPointsInShape):
         point = PoseStamped()
 
-        point.pose.position.x = x_shape[i]*sizeScale_width
-        point.pose.position.y = -y_shape[i]*sizeScale_height
+        point.pose.position.x = x_shape[i]*sizeScale_width * scale_factor
+        point.pose.position.y = -y_shape[i]*sizeScale_height * scale_factor
 
         point.pose.position.x += offset_x
         point.pose.position.y += offset_y
