@@ -687,7 +687,7 @@ def waitForFeedback(infoFromPrevState):
     if demoShapeReceived is not None:
         infoForNextState ['demoShapeReceived'] = demoShapeReceived
         demoShapeReceived = None
-        nextState = "RESPONDING_TO_DEMONSTRATION"   
+        nextState = "RESPONDING_TO_DEMONSTRATION_FULL_WORD"   
         infoForNextState['state_goTo'] = [nextState] #ensure robot is connected before going to that state
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
 
