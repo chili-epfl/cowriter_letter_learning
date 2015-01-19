@@ -100,6 +100,22 @@ sizeScale_width = 0.023    #Desired width of shape (metres) (@todo this should b
 numDesiredShapePoints = 7.0;#Number of points to downsample the length of shapes to 
 numPoints_shapeModeler = 70 #Number of points used by ShapeModelers (@todo this could vary for each letter)
 
+#TODO: move this map to a better place
+LETTER_SCALES = {'a': 0.4,
+                 'c': 0.4,
+                 'e': 0.4,
+                 'e': 0.4,
+                 'e': 0.4,
+                 'e': 0.4,
+                 'i': 0.3,
+                 'm': 0.4,
+                 'n': 0.4,
+                 'o': 0.4,
+                 'r': 0.4,
+                 's': 0.4,
+                 'u': 0.4,
+                 'v': 0.4,
+                 'x': 0.4}
 
 drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER']
 
