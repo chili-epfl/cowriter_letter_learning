@@ -200,11 +200,11 @@ def respondToDemonstration(infoFromPrevState):
     shapeIndex_demoFor = demoShapeReceived.shapeType_code
 
     shape = downsampleShape(shape)
-    shapeType = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor)
+    shapeName = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor)
     if naoSpeaking:
         global demo_response_phrases_counter
         try:
-            toSay = demo_response_phrases[demo_response_phrases_counter]%shapeType
+            toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
         except TypeError: #string wasn't meant to be formatted
             toSay = demo_response_phrases[demo_response_phrases_counter]
         demo_response_phrases_counter += 1
@@ -214,12 +214,50 @@ def respondToDemonstration(infoFromPrevState):
         rospy.loginfo('NAO: '+toSay)
 
 
-    rospy.loginfo("Received demo for " + shapeType)
+    rospy.loginfo("Received demo for " + shapeName)
     shape = wordManager.respondToDemonstration(shapeIndex_demoFor, shape)
     state_goTo = deepcopy(drawingLetterSubstates)
     nextState = state_goTo.pop(0)
     infoForNextState = {'state_goTo': state_goTo, 'state_cameFrom': "RESPONDING_TO_DEMONSTRATION",'shapesToPublish': [shape]}
     return nextState, infoForNextState
+
+def respondToDemonstrationWithFullWord(infoFromPrevState):
+    #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION_FULL_WORD')
+    rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
+    demoShapeReceived = infoFromPrevState['demoShapeReceived']
+    shape = demoShapeReceived.path
+    shapeIndex_demoFor = demoShapeReceived.shapeType_code
+
+    shape = downsampleShape(shape)
+    shapeName = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor)
+    if naoSpeaking:
+        global demo_response_phrases_counter
+        try:
+            toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
+        except TypeError: #string wasn't meant to be formatted
+            toSay = demo_response_phrases[demo_response_phrases_counter]
+        demo_response_phrases_counter += 1
+        if demo_response_phrases_counter==len(demo_response_phrases):
+            demo_response_phrases_counter = 0
+        textToSpeech.say(toSay)
+        rospy.loginfo('NAO: '+toSay)
+
+    rospy.loginfo("Received demo for " + shapeName)
+    shape = wordManager.respondToDemonstration(shapeIndex_demoFor, shape)
+
+    #clear screen
+    pub_clear.publish(Empty())
+    rospy.sleep(0.5)
+
+    shapesToPublish = wordManager.shapesOfCurrentCollection()
+
+    nextState = 'PUBLISHING_WORD'
+    infoForNextState = {'state_cameFrom': "RESPONDING_TO_DEMONSTRATION_FULL_WORD",
+                        'shapesToPublish': shapesToPublish,
+                        'wordToWrite': wordManager.currentCollection}
+
+    return nextState, infoForNextState
+
 
 
 def publishShape(infoFromPrevState):
@@ -891,6 +929,7 @@ if __name__ == "__main__":
     stateMachine.add_state("WAITING_FOR_FEEDBACK", waitForFeedback)
     stateMachine.add_state("RESPONDING_TO_FEEDBACK", respondToFeedback)
     stateMachine.add_state("RESPONDING_TO_DEMONSTRATION", respondToDemonstration)
+    stateMachine.add_state("RESPONDING_TO_DEMONSTRATION_FULL_WORD", respondToDemonstrationWithFullWord)
     stateMachine.add_state("RESPONDING_TO_TEST_CARD", respondToTestCard)
     #stateMachine.add_state("RESPONDING_TO_TABLET_DISCONNECT", respondToTabletDisconnect)
     stateMachine.add_state("WAITING_FOR_TABLET_TO_CONNECT", waitForTabletToConnect)
