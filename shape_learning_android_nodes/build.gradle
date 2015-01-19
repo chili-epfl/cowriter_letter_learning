@@ -34,8 +34,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath group: 'org.ros.rosjava_bootstrap', name: 'gradle_plugins', version: '[0.1,0.2)'
-        classpath group: 'org.ros.rosjava_messages', name: 'trajectory_msgs', version: '[1.10,1.11)'
+        classpath group: 'org.ros.rosjava_bootstrap', name: 'gradle_plugins', version: '[0.1,0.3)'
+        classpath group: 'org.ros.rosjava_messages', name: 'trajectory_msgs', version: '[0.1,0.2)'
         classpath 'com.android.tools.build:gradle:0.12.+'
     }
 }
