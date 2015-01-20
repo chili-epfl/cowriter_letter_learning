@@ -17,6 +17,11 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
 android:orientation="vertical" android:layout_width="fill_parent"
 android:layout_height="fill_parent" android:background="#35517cff">
+    <org.ros.android.shape_learner.BoxesViewNode
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/boxes"
+        />
 
     <org.ros.android.shape_learner.SystemDrawingViewNode
         android:layout_height="fill_parent"

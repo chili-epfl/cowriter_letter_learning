@@ -54,6 +54,7 @@ public class MainActivity extends RosActivity {
     private SystemDrawingViewNode systemDrawingViewNode;
     private UserDrawingView userDrawingsView;
     private UserDrawingView userGestureView;
+    private BoxesViewNode boxesView;
     private Button buttonClear;
     private ImageButton buttonSend;
     private ArrayList< ArrayList<double[]> > userDrawnMessage = new ArrayList<ArrayList<double[]>>();
@@ -122,6 +123,9 @@ public class MainActivity extends RosActivity {
             }
         });
 
+        boxesView = (BoxesViewNode) findViewById(R.id.boxes);
+        boxesView.setTopicName("boxes_to_draw");
+
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
@@ -142,6 +146,7 @@ public class MainActivity extends RosActivity {
         interactionManagerNode.setGestureInfoTopicName("gesture_info");
         interactionManagerNode.setClearScreenTopicName("clear_screen");
         systemDrawingViewNode.setClearScreenTopicName("clear_screen");
+        boxesView.setClearScreenTopicName("clear_screen");
         systemDrawingViewNode.setClearWatchdogTopicName("watchdog_clear/tablet");
         systemDrawingViewNode.setFinishedShapeTopicName("shape_finished");
         interactionManagerNode.setUserDrawnShapeTopicName("user_drawn_shapes");
@@ -166,6 +171,7 @@ public class MainActivity extends RosActivity {
         else{
             nodeMainExecutor.execute(systemDrawingViewNode, nodeConfiguration.setNodeName("android_gingerbread/display_manager"));
             nodeMainExecutor.execute(interactionManagerNode, nodeConfiguration.setNodeName("android_gingerbread/interaction_manager"));
+            nodeMainExecutor.execute(boxesView, nodeConfiguration.setNodeName("android_gingerbread/boxes_drawer"));
         }
 
         DisplayMethods displayMethods = new DisplayMethods();
