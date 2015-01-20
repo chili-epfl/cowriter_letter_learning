@@ -54,30 +54,65 @@ if __name__=="__main__":
     tf_listener = tf.TransformListener(True, rospy.Duration(0.5))
     rospy.sleep(0.5)
     rate = rospy.Rate(10)
-    prevTagDetected = [];
+    tagsDetected = set();
+    prevWord = []
+    wordToPublish = None
+    groups = {}
+    
+    
+    test = False
 
     while not rospy.is_shutdown():
         for tag in tags_words_mapping:
-            '''
-            #this method will keep detecting tags even after they are removed because they're still in the buffer
-            try:
-                tf_listener.waitForTransform(CAMERA_FRAME, tag, rospy.Time.now(), rospy.Duration(0.5))
-                t = tf_listener.getLatestCommonTime(CAMERA_FRAME, tag)
-                (trans,rot) = tf_listener.lookupTransform(CAMERA_FRAME, tag, t)
-                tagDetected = True;
-                rospy.loginfo('found tag: '+tags_words_mapping[tag]);
-            except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException),e:
-                rospy.err(e);
-                tagDetected = False;
-            '''
+            
             tagDetected = tf_listener.frameExists(tag);  
             
-            #this method should prevent previous tags from being misdetected, by clearing the buffer
-            if(tagDetected and not tag==prevTagDetected):
-                prevTagDetected = tag;
-                wordToPublish = tags_words_mapping[tag];
-
-                rospy.loginfo('Publishing tag: '+wordToPublish);
+            if not tagDetected: 
+                if tag in tagsDetected:
+                    tagsDetected.remove(tag)
+            else:
+                if not tagsDetected:
+                    tagsDetected.add(tag)
+                else:
+                    
+                    for prevTag in frozenset(tagsDetected):
+                        if prevTag != tag:
+                            
+                            try:
+                                if tf_listener.frameExists(tag) and tf_listener.frameExists(prevTag):
+                                    t = tf_listener.getLatestCommonTime(tag, prevTag)
+                                    pos, rot = tf_listener.lookupTransform(tag, prevTag, t)
+                                    d = abs(pos[0]) + abs(pos[1]) + abs(pos[2])
+                                    r = abs(rot[0]) + abs(rot[1]) + abs(rot[2])
+                                    
+                                    tagsDetected.add(tag)
+                                    noCommonTime = False
+                                    
+                                    letter1 = tags_words_mapping[tag]
+                                    letter2 = tags_words_mapping[prevTag]
+                                    
+                                    groups.setdefault(letter1,set([letter1]))
+                                    groups.setdefault(letter2,set([letter2]))
+                                    
+                                    
+                                    if d<0.2 and r<0.3:
+                                        groups[letter1].add(letter2)
+                                        groups[letter2].add(letter1)
+                                    
+                                    if len(groups[letter1])==3:
+                                        #print('word detected with :')
+                                        print(groups[letter1])
+                                        groups = {}
+                                    elif len(groups[letter2])==3:
+                                        #print('word detected with :')
+                                        print(groups[letter2])
+                                        groups = {}
+                                    
+                            except tf.ExtrapolationException:
+                                pass
+            '''
+            if wordToPublish:
+                rospy.loginfo('Publishing word: '+wordToPublish);
 
                 if tag in special_tags:
                     message = String()
@@ -100,4 +135,12 @@ if __name__=="__main__":
                 rospy.sleep(5) #wait till the tag times out (in the use context
                                 #it's not likely to get two words within 5s)
                 rospy.logdebug("Ok, waiting for a new word")
+                
+                tagsDetected = set();
+                wordToPublish = None
+                groups = {}'''
+                    
     rate.sleep()
+    
+    if rospy.is_shutdown():
+        print('rospy is shutdown !')
