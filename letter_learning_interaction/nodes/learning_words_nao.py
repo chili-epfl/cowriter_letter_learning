@@ -16,6 +16,8 @@ from letter_learning_interaction.interaction_settings import InteractionSettings
 from shape_learning.shape_learner_manager import ShapeLearnerManager
 from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight()
 
+from letter_learning_interaction.text_shaper import TextShaper, ScreenManager
+
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point
@@ -96,27 +98,9 @@ headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTa
 
 #trajectory publishing parameters
 t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting)
-sizeScale_height = 0.035   #Desired height of shape (metres) (because of grid used by shape_display_manager)
-sizeScale_width = 0.023    #Desired width of shape (metres) (@todo this should be set by shape_display_manager)
-numDesiredShapePoints = 7.0;#Number of points to downsample the length of shapes to 
-numPoints_shapeModeler = 70 #Number of points used by ShapeModelers (@todo this could vary for each letter)
-
-#TODO: move this map to a better place
-LETTER_SCALES = {'a': 0.4,
-                 'c': 0.4,
-                 'e': 0.4,
-                 'e': 0.4,
-                 'e': 0.4,
-                 'e': 0.4,
-                 'i': 0.3,
-                 'm': 0.4,
-                 'n': 0.4,
-                 'o': 0.4,
-                 'r': 0.4,
-                 's': 0.4,
-                 'u': 0.4,
-                 'v': 0.4,
-                 'x': 0.4}
+NUMDESIREDSHAPEPOINTS = 7.0;#Number of points to downsample the length of shapes to 
+NUMPOINTS_SHAPEMODELER = 70 #Number of points used by ShapeModelers (@todo this could vary for each letter)
+DOWNSAMPLEFACTOR = float(NUMPOINTS_SHAPEMODELER-1)/float(NUMDESIREDSHAPEPOINTS-1)
 
 drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO_CONNECT', 'PUBLISHING_LETTER']
 
@@ -277,8 +261,11 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
     return nextState, infoForNextState
 
 
-
 def publishShape(infoFromPrevState):
+    # TODO: publishShape is currently broken. Needs to be updated to use the
+    # TextShaper and the ScreenManager, like publishWord
+    raise RuntimeError("publish shape is currently broken!!")
+
     #print('------------------------------------------ PUBLISHING_LETTER')
     rospy.loginfo("STATE: PUBLISHING_LETTER")
     shapesToPublish = infoFromPrevState['shapesToPublish']
@@ -292,13 +279,16 @@ def publishShape(infoFromPrevState):
         print "Service call failed: %s"%e
 
     headerString = shape.shapeType+'_'+str(shape.paramsToVary)+'_'+str(shape.paramValues)
-    [traj_downsampled, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, t0, True, dt) #for robot
-    downsampleFactor = float(numPoints_shapeModeler-1)/float(numDesiredShapePoints-1)
-    traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, float(dt)/downsampleFactor)
-    #traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, dt)
+
+    traj_downsampled = make_traj_msg(shape.path, shapeCentre, headerString, t0, True, dt) #for robot
+
+    traj = make_traj_msg(shape.path, shapeCentre, headerString, t0, False, float(dt)/DOWNSAMPLEFACTOR)
+
     trajStartPosition = traj.poses[0].pose.position
+
     if naoConnected:
         lookAtTablet()
+
     pub_traj_downsampled.publish(traj_downsampled)
     pub_traj.publish(traj)
 
@@ -314,55 +304,35 @@ def publishShape(infoFromPrevState):
 def publishWord(infoFromPrevState):
     #print('------------------------------------------ PUBLISHING_WORD')
     rospy.loginfo("STATE: PUBLISHING_WORD")
-    shapesToPublish = infoFromPrevState['shapesToPublish']
 
-    wholeTraj = Path()
-    wholeTraj_downsampled = Path()
+    shapedWord = textShaper.shapeWord(wordManager)
+    placedWord = screenManager.placeWord(shapedWord)
 
-    startTime = t0
+    traj = make_traj_msg(placedWord, float(dt)/DOWNSAMPLEFACTOR)
 
-    start_pos = None
+    # downsampled the trajectory for the robot arm motion
+    downsampledShapedWord = deepcopy(placedWord)
+    downsampledShapedWord.downsample(DOWNSAMPLEFACTOR)
 
-    for shape in shapesToPublish:
+    downsampledTraj = make_traj_msg(downsampledShapedWord, dt)
 
-        try:
-            display_new_shape = rospy.ServiceProxy('display_new_shape', displayNewShape)
-            response = display_new_shape(shape_type_code = shape.shapeType_code)
-            shapeCentre = numpy.array([response.location.x, response.location.y])
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
+    ###
+    # Request the tablet to display the letters' and word's bounding boxes
+    for bb in placedWord.get_letters_bounding_boxes():
+        pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=False))
+        rospy.sleep(0.1) #leave some time for the tablet to process the bbs
 
-        headerString = shape.shapeType + '_' + str(shape.paramsToVary) + '_' + str(shape.paramValues)
-        [traj_downsampled, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt) #for robot
+    pub_bounding_boxes.publish(make_bounding_box_msg(placedWord.get_global_bb(), selected=False))
+    ###
 
-        downsampleFactor = float(numPoints_shapeModeler-1)/float(numDesiredShapePoints-1)
-        traj = make_traj_msg(shape.path, 
-                             shapeCentre, 
-                             headerString, 
-                             startTime, 
-                             False, # downsample
-                             float(dt)/downsampleFactor,
-                             start_pos=start_pos,
-                             scale_factor = LETTER_SCALES.get(shape.shapeType, 1.0))
-        #[traj, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt)
+    trajStartPosition = traj.poses[0].pose.position
 
-        pub_bounding_boxes.publish(get_bounding_box_msg(traj, selected=False))
-
-        wholeTraj.poses.extend(deepcopy(traj.poses))
-        start_pos = traj.poses[-1].pose.position
-
-        wholeTraj_downsampled.poses.extend(deepcopy(traj_downsampled.poses))
-        startTime = traj.poses[-1].header.stamp.to_sec()+1 #start after the previous shape finishes next time
-
-    wholeTraj.header = traj.header
-    wholeTraj_downsampled.header = traj.header
-    trajStartPosition = wholeTraj.poses[0].pose.position
     if naoConnected:
         lookAtTablet()
-    pub_traj_downsampled.publish(wholeTraj_downsampled)
-    pub_traj.publish(wholeTraj) 
 
-    shapesToPublish = []
+    pub_traj_downsampled.publish(downsampledTraj)
+    pub_traj.publish(traj)
+
     nextState = "WAITING_FOR_LETTER_TO_FINISH"
     infoForNextState = {'state_cameFrom':  "PUBLISHING_WORD",'state_goTo': ["ASKING_FOR_FEEDBACK"],'centre': trajStartPosition, 'wordWritten':infoFromPrevState['wordToWrite']}
 
@@ -813,22 +783,22 @@ def downsampleShape(shape):
 
     #make shape have the same number of points as the shape_modeler
     t_current = numpy.linspace(0, 1, numPointsInShape)
-    t_desired = numpy.linspace(0, 1, numPoints_shapeModeler)
+    t_desired = numpy.linspace(0, 1, NUMPOINTS_SHAPEMODELER)
     f = interpolate.interp1d(t_current, x_shape, kind='cubic')
     x_shape = f(t_desired)
     f = interpolate.interp1d(t_current, y_shape, kind='cubic')
     y_shape = f(t_desired)
 
     shape = []
-    shape[0:numPoints_shapeModeler] = x_shape
-    shape[numPoints_shapeModeler:] = y_shape
+    shape[0:NUMPOINTS_SHAPEMODELER] = x_shape
+    shape[NUMPOINTS_SHAPEMODELER:] = y_shape
 
     shape = ShapeModeler.normaliseShapeHeight(numpy.array(shape))
     shape = numpy.reshape(shape, (-1, 1)) #explicitly make it 2D array with only one column
 
     return shape
 
-def get_bounding_box_msg(path, selected=False):
+def make_bounding_box_msg(bbox, selected=False):
 
     bb = Float64MultiArray()
     bb.layout.data_offset = 0
@@ -836,93 +806,32 @@ def get_bounding_box_msg(path, selected=False):
     dim.label = "bb" if not selected else "select" # we use the label of the first dimension to carry the selected/not selected infomation
     bb.layout.dim = [dim]
     
-    x_min = 2000
-    y_min = 2000
-    x_max = 0
-    y_max = 0
-
-    for pose in path.poses:
-        pos = pose.pose.position
-
-        if pos.x < x_min:
-            x_min = pos.x
-        if pos.y < y_min:
-            y_min = pos.y
-
-        if pos.x > x_max:
-            x_max = pos.x
-        if pos.y > y_max:
-            y_max = pos.y
-
+    x_min, y_min, x_max, y_max = bbox
     bb.data = [x_min, y_min, x_max, y_max]
 
     return bb
 
-
-def make_traj_msg(shape, 
-                  shapeCentre, 
-                  headerString, 
-                  startTime, 
-                  downsample, 
-                  deltaT, 
-                  start_pos=None,
-                  scale_factor=1.0): # the global scaling factor of the letter: a 'u' is smaller than a 'm' for instance
-    if startTime!=t0:
-        penUpToFirst = True
-    else:
-        penUpToFirst = False
+def make_traj_msg(shapedWord, deltaT):
 
     traj = Path()
-    traj.header.frame_id = FRAME#headerString
-    traj.header.stamp = rospy.Time.now()+rospy.Duration(delayBeforeExecuting)
-    shape = ShapeModeler.normaliseShapeHeight(shape)
-    numPointsInShape_orig = len(shape)/2  
+    traj.header.frame_id = FRAME
+    traj.header.stamp = rospy.Time.now() + rospy.Duration(delayBeforeExecuting)
 
-    x_shape = shape[0:numPointsInShape_orig]
-    y_shape = shape[numPointsInShape_orig:]
+    pointIdx = 0
+    for path in shapedWord.get_letters_paths():
+        for x, y in path:
+            point = PoseStamped()
 
-    if downsample:
-        #make shape have the appropriate number of points
-        t_current = numpy.linspace(0, 1, numPointsInShape_orig)
-        t_desired = numpy.linspace(0, 1, numDesiredShapePoints)
-        f = interpolate.interp1d(t_current, x_shape[:,0], kind='cubic')
-        x_shape = f(t_desired)
-        f = interpolate.interp1d(t_current, y_shape[:,0], kind='cubic')
-        y_shape = f(t_desired)
+            point.pose.position.x = x
+            point.pose.position.y = y
+            point.header.frame_id = FRAME
+            point.header.stamp = rospy.Time(t0 + pointIdx * deltaT) #@TODO allow for variable time between points for now
 
-        numPointsInShape = len(x_shape)
-        downsampleFactor = numPointsInShape_orig/float(numPointsInShape)
-    else:
-        numPointsInShape = numPointsInShape_orig
+            traj.poses.append(deepcopy(point))
 
-    if start_pos:
-        offset_x = start_pos.x - x_shape[0] * sizeScale_width * scale_factor
-        offset_y = start_pos.y + y_shape[0] * sizeScale_height * scale_factor
-    else:
-        offset_x = shapeCentre[0]
-        offset_y = shapeCentre[1]
+            pointIdx += 1
 
-    for i in range(numPointsInShape):
-        point = PoseStamped()
-
-        point.pose.position.x = x_shape[i]*sizeScale_width * scale_factor
-        point.pose.position.y = -y_shape[i]*sizeScale_height * scale_factor
-
-        point.pose.position.x += offset_x
-        point.pose.position.y += offset_y
-
-        point.header.frame_id = FRAME
-        point.header.stamp = rospy.Time(startTime+i*deltaT+t0) #@TODO allow for variable time between points for now
-
-        if penUpToFirst and i==0:
-            point.header.seq = 1
-
-        traj.poses.append(deepcopy(point))
-
-    if downsample:
-        return traj, downsampleFactor
-    else:
-        return traj
+    return traj
 
 def lookAtTablet():
     if FRONT_INTERACTION:
@@ -1064,6 +973,8 @@ if __name__ == "__main__":
     #initialise word manager (passes feedback to shape learners and keeps history of words learnt)
     InteractionSettings.setDatasetDirectory(datasetDirectory)
     wordManager = ShapeLearnerManager(InteractionSettings.generateSettings, SHAPE_LOGGING_PATH)
+    textShaper = TextShaper()
+    screenManager = ScreenManager(0.2, 0.1395)
 
 
     '''
