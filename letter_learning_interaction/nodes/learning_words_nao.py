@@ -19,7 +19,7 @@ from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight(
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point
-from std_msgs.msg import String, Empty, Bool
+from std_msgs.msg import String, Empty, Bool, Float64MultiArray
 from letter_learning_interaction.msg import Shape as ShapeMsg
 
 from letter_learning_interaction.state_machine import StateMachine
@@ -57,6 +57,7 @@ else:
 FRAME = rospy.get_param('~writing_surface_frame_id','writing_surface')  #Frame ID to publish points in
 FEEDBACK_TOPIC = rospy.get_param('~shape_feedback_topic','shape_feedback') #Name of topic to receive feedback on
 SHAPE_TOPIC = rospy.get_param('~trajectory_output_topic','/write_traj') #Name of topic to publish shapes to
+BOUNDING_BOXES_TOPIC = rospy.get_param('~bounding_boxes_topic','/boxes_to_draw') #Name of topic to publish bounding boxes of letters to
 SHAPE_TOPIC_DOWNSAMPLED = rospy.get_param('~trajectory_output_nao_topic','/write_traj_downsampled') #Name of topic to publish shapes to
 
 SHAPE_LOGGING_PATH = rospy.get_param('~shape_log','') # path to a log file where all learning steps will be stored
@@ -121,6 +122,7 @@ drawingLetterSubstates = ['WAITING_FOR_ROBOT_TO_CONNECT', 'WAITING_FOR_TABLET_TO
 
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool, queue_size=10)
 pub_traj = rospy.Publisher(SHAPE_TOPIC, Path, queue_size=10)
+pub_bounding_boxes = rospy.Publisher(BOUNDING_BOXES_TOPIC, Float64MultiArray, queue_size=10)
 pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path, queue_size=10)
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10)
 
@@ -343,6 +345,8 @@ def publishWord(infoFromPrevState):
                              start_pos=start_pos,
                              scale_factor = LETTER_SCALES.get(shape.shapeType, 1.0))
         #[traj, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt)
+
+        pub_bounding_boxes.publish(get_bounding_box(traj))
 
         wholeTraj.poses.extend(deepcopy(traj.poses))
         start_pos = traj.poses[-1].pose.position
@@ -823,6 +827,35 @@ def downsampleShape(shape):
     shape = numpy.reshape(shape, (-1, 1)) #explicitly make it 2D array with only one column
 
     return shape
+
+def get_bounding_box(path):
+
+    bb = Float64MultiArray()
+    bb.layout.data_offset = 0
+    bb.layout.dim = []
+    
+    x_min = 2000
+    y_min = 2000
+    x_max = 0
+    y_max = 0
+
+    for pose in path.poses:
+        pos = pose.pose.position
+
+        if pos.x < x_min:
+            x_min = pos.x
+        if pos.y < y_min:
+            y_min = pos.y
+
+        if pos.x > x_max:
+            x_max = pos.x
+        if pos.y > y_max:
+            y_max = pos.y
+
+    bb.data = [x_min, y_min, x_max, y_max]
+
+    return bb
+
 
 def make_traj_msg(shape, 
                   shapeCentre, 
