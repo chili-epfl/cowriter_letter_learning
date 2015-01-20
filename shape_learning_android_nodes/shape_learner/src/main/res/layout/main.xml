@@ -21,7 +21,7 @@ android:layout_height="fill_parent" android:background="#35517cff">
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:id="@+id/boxes"
-        />
+        android:background="@drawable/seyes" />
 
     <org.ros.android.shape_learner.SystemDrawingViewNode
         android:layout_height="fill_parent"
