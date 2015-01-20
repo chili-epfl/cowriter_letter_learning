@@ -78,6 +78,16 @@ public class BoxesViewNode extends View implements NodeMain {
             @Override
             public void onNewMessage(final Float64MultiArray message) {
 
+                // if the label contains 'select', then display a red filled box
+                String type = message.getLayout().getDim().get(0).getLabel();
+                if (type.contains("select")) {
+                    currentPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+                    currentPaint.setColor(Color.argb(128,255,100,100));
+                }
+                else {
+                    currentPaint.setStyle(Paint.Style.STROKE);
+                    currentPaint.setColor(Color.GRAY);
+                }
 
                 double left = DisplayMethods.M2PX(message.getData()[0]);
                 double top = getHeight() - DisplayMethods.M2PX(message.getData()[1]);

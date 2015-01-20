@@ -19,7 +19,7 @@ from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight(
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, Point
-from std_msgs.msg import String, Empty, Bool, Float64MultiArray
+from std_msgs.msg import String, Empty, Bool, Float64MultiArray, MultiArrayDimension
 from letter_learning_interaction.msg import Shape as ShapeMsg
 
 from letter_learning_interaction.state_machine import StateMachine
@@ -346,7 +346,7 @@ def publishWord(infoFromPrevState):
                              scale_factor = LETTER_SCALES.get(shape.shapeType, 1.0))
         #[traj, downsampleFactor] = make_traj_msg(shape.path, shapeCentre, headerString, startTime, True, dt)
 
-        pub_bounding_boxes.publish(get_bounding_box(traj))
+        pub_bounding_boxes.publish(get_bounding_box_msg(traj, selected=False))
 
         wholeTraj.poses.extend(deepcopy(traj.poses))
         start_pos = traj.poses[-1].pose.position
@@ -828,11 +828,13 @@ def downsampleShape(shape):
 
     return shape
 
-def get_bounding_box(path):
+def get_bounding_box_msg(path, selected=False):
 
     bb = Float64MultiArray()
     bb.layout.data_offset = 0
-    bb.layout.dim = []
+    dim = MultiArrayDimension()
+    dim.label = "bb" if not selected else "select" # we use the label of the first dimension to carry the selected/not selected infomation
+    bb.layout.dim = [dim]
     
     x_min = 2000
     y_min = 2000
