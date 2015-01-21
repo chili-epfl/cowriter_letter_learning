@@ -70,55 +70,17 @@ def userShapePreprocessor(message):
 
 # ------------------------------------------------------- PROCESSING USER SHAPE
 def onUserDrawnShapeReceived(path, shapePreprocessingMethod, positionToShapeMappingMethod):
-    global activeShapeForDemonstration_type 
-    
+
     #preprocess to turn multiple strokes into one path
     if(shapePreprocessingMethod == 'longestStroke'):
         path = processShape_longestStroke(strokes); 
     else:
         path = processShape_firstStroke(strokes);
-            
-            
-    #identify type of shape which demonstration was for
-    location = ShapeModeler.getShapeCentre(path);
 
-    if(positionToShapeMappingMethod == 'basedOnColumnOfScreen'):
-        shapeType_demoFor = getShapeCode_basedOnColumnOfScreen(location);
+    demoShapeReceived = Shape(path=path);
+    shapeMessage = makeShapeMessage(demoShapeReceived);
+    pub_shapes.publish(shapeMessage);
 
-    elif(positionToShapeMappingMethod == 'basedOnRowOfScreen'):
-        shapeType_demoFor = getShapeCode_basedOnColumnOfScreen(location);    
-
-    elif(positionToShapeMappingMethod == 'basedOnShapeAtPosition'):
-        shapeType_demoFor = getShapeCode_basedOnShapeAtPosition(location);
-        
-    else:
-        shapeType_demoFor = getShapeCode_basedOnClosestShapeToPosition(location);
-       
-       
-    #block the space from robot use
-    try:
-        display_shape_at_location = rospy.ServiceProxy('display_shape_at_location', displayShapeAtLocation);
-        request = displayShapeAtLocationRequest();
-        request.shape_type_code = shapeType_demoFor;
-        request.location.x = location[0];
-        request.location.y = location[1];
-        #todo: allow for blocking different sized shapes
-        response = display_shape_at_location(request);
-        result = response.success;
-        #todo: do something if unsuccessful
-    except rospy.ServiceException, e:
-        rospy.logerr("Service call failed: %s",e);
-    
-    if(shapeType_demoFor == -1):# or response.shape_id == -1): 
-        rospy.loginfo("Ignoring demo because not for valid shape");
-    else:      
-        demoShapeReceived = Shape(path=path, shapeType_code=shapeType_demoFor);
-        activeShapeForDemonstration_type = shapeType_demoFor;
-        rospy.loginfo('Setting active shape to shape ' + str(shapeType_demoFor));
-        
-        shapeMessage = makeShapeMessage(demoShapeReceived);
-        pub_shapes.publish(shapeMessage);
-        
 # ---------------------------------------- FORMATTING SHAPE OBJECT INTO ROS MSG
 # expects a ShapeLearnerManager.Shape as input
 def makeShapeMessage(shape):
@@ -150,73 +112,6 @@ def processShape_longestStroke(strokes):
     
 def processShape_firstStroke(strokes):
     return strokes[0];        
- 
-# --------------------------------------- INTENDED SHAPE INTERPRETATION METHODS
-def getShapeCode_basedOnColumnOfScreen(location):
-    #map to shapelearner based on third of the screen demo was in
-    if(location[0]<.21/3):
-        shapeType_demoFor = 0;
-    elif(location[0]>.21/3*2):
-        shapeType_demoFor = 2;
-    else:
-        shapeType_demoFor = 1;
-    return shapeType_demoFor
-    
-def getShapeCode_basedOnRowOfScreen(location):
-    try:
-        index_of_location = rospy.ServiceProxy('index_of_location', indexOfLocation);
-        request = indexOfLocationRequest();
-        request.location.x = location[0];
-        request.location.y = location[1];
-        response = index_of_location(request);
-        shapeIndex_demoFor = response.row;
-        
-    except rospy.ServiceException, e:
-        rospy.logerr("Service call failed: %s",e);
-        shapeType_demoFor = -1;
-        
-    return shapeType_demoFor
-    
-def getShapeCode_basedOnShapeAtPosition(location):
-    try:
-        shape_at_location = rospy.ServiceProxy('shape_at_location', shapeAtLocation);
-        request = shapeAtLocationRequest();
-        request.location.x = location[0];
-        request.location.y = location[1];
-        response = shape_at_location(request);
-        shapeType_demoFor = response.shape_type_code;
-        
-    except rospy.ServiceException, e:
-        rospy.logerr("Service call failed: %s",e);
-        shapeType_demoFor = -1;
-        
-    return shapeType_demoFor
-    
-def getShapeCode_basedOnClosestShapeToPosition(location):
-    global activeShapeForDemonstration_type
-    try:
-        closest_shapes_to_location = rospy.ServiceProxy('closest_shapes_to_location', closestShapesToLocation);
-        request = closestShapesToLocationRequest();
-        request.location.x = location[0];
-        request.location.y = location[1];
-        response = closest_shapes_to_location(request);
-        closestShapes_type = response.shape_type_code;
-        
-        if(len(closestShapes_type)>1 and activeShapeForDemonstration_type is not None):
-            #in the event of a "tie"'
-            try: #see if active shape is in list
-                dummyIndex = closestShapes_type.index(activeShapeForDemonstration_type);
-                shapeType_demoFor = activeShapeForDemonstration_type; #give it priority
-            except ValueError: #just use first in list otherwise
-                shapeType_demoFor = closestShapes_type[0];
-        else: #just use first in list
-            shapeType_demoFor = closestShapes_type[0];
-            
-    except rospy.ServiceException, e:
-        rospy.logerr("Service call failed: %s",e);
-        shapeType_demoFor = -1;
-
-    return shapeType_demoFor
 
 # ----------------- PROCESS GESTURES FOR SETTING ACTIVE SHAPE FOR DEMONSTRATION
 activeShapeForDemonstration_type = None;

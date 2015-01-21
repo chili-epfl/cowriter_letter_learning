@@ -116,15 +116,32 @@ pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10)
 
 # ---------------------------------------- CALLBACK METHODS FOR ROS SUBSCRIBERS
 
+activeLetter = None
 demoShapeReceived = None
 def onUserDrawnShapeReceived(shape):
     global demoShapeReceived
+    global activeLetter
 
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
-            or stateMachine.get_state() == "ASKING_FOR_FEEDBACK"):
+       or stateMachine.get_state() == "ASKING_FOR_FEEDBACK"):
+
+        if activeLetter:
+            shape.shapeType = activeLetter
+            activeLetter = None
+            rospy.loginfo('Received demonstration for selected letter ' + shape.shapeType)
+        else:
+            letter, bb = screenManager.find_letter(shape.path)
+
+            if letter:
+                shape.shapeType = letter
+                pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
+                rospy.loginfo('Received demonstration for ' + shape.shapeType)
+            else:
+                rospy.logwarn('Received demonstration, but unable to find the letter that was demonstrated! Ignoring it.')
+                return
+
         demoShapeReceived = shape #replace any existing feedback with new
-        demoShapeReceived.shapeType = wordManager.shapeAtIndexInCurrentCollection(demoShapeReceived.shapeType_code)
-        rospy.loginfo('Received demonstration for ' + demoShapeReceived.shapeType)
+
     else:
         pass #ignore feedback
 
@@ -194,7 +211,6 @@ def onNewChildReceived(message):
     pub_clear.publish(Empty())
     rospy.sleep(0.5)
 
-activeLetter = None
 def onSetActiveShapeGesture(message):
     global activeLetter
 
@@ -210,10 +226,10 @@ def respondToDemonstration(infoFromPrevState):
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION")
     demoShapeReceived = infoFromPrevState['demoShapeReceived']
     shape = demoShapeReceived.path
-    shapeIndex_demoFor = demoShapeReceived.shapeType_code
+    shapeName = demoShapeReceived.shapeType
 
     shape = downsampleShape(shape)
-    shapeName = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor)
+
     if naoSpeaking:
         global demo_response_phrases_counter
         try:
@@ -228,7 +244,8 @@ def respondToDemonstration(infoFromPrevState):
 
 
     rospy.loginfo("Received demo for " + shapeName)
-    shape = wordManager.respondToDemonstration(shapeIndex_demoFor, shape)
+    shapeIndex = wordManager.currentCollection.index(shapeName)
+    shape = wordManager.respondToDemonstration(shapeIndex, shape)
     state_goTo = deepcopy(drawingLetterSubstates)
     nextState = state_goTo.pop(0)
     infoForNextState = {'state_goTo': state_goTo, 'state_cameFrom': "RESPONDING_TO_DEMONSTRATION",'shapesToPublish': [shape]}
@@ -239,10 +256,9 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
     demoShapeReceived = infoFromPrevState['demoShapeReceived']
     shape = demoShapeReceived.path
-    shapeIndex_demoFor = demoShapeReceived.shapeType_code
+    shapeName = demoShapeReceived.shapeType
 
     shape = downsampleShape(shape)
-    shapeName = wordManager.shapeAtIndexInCurrentCollection(shapeIndex_demoFor)
     if naoSpeaking:
         global demo_response_phrases_counter
         try:
@@ -256,7 +272,8 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         rospy.loginfo('NAO: '+toSay)
 
     rospy.loginfo("Received demo for " + shapeName)
-    shape = wordManager.respondToDemonstration(shapeIndex_demoFor, shape)
+    shapeIndex = wordManager.currentCollection.index(shapeName)
+    shape = wordManager.respondToDemonstration(shapeIndex, shape)
 
     #clear screen
     pub_clear.publish(Empty())
@@ -329,11 +346,11 @@ def publishWord(infoFromPrevState):
 
     ###
     # Request the tablet to display the letters' and word's bounding boxes
-    for bb in placedWord.get_letters_bounding_boxes():
-        pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=False))
-        rospy.sleep(0.1) #leave some time for the tablet to process the bbs
+    #for bb in placedWord.get_letters_bounding_boxes():
+    #    pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=False))
+    #    rospy.sleep(0.1) #leave some time for the tablet to process the bbs
 
-    pub_bounding_boxes.publish(make_bounding_box_msg(placedWord.get_global_bb(), selected=False))
+    #pub_bounding_boxes.publish(make_bounding_box_msg(placedWord.get_global_bb(), selected=False))
     ###
 
     trajStartPosition = traj.poses[0].pose.position
@@ -504,6 +521,7 @@ def respondToNewWord(infoFromPrevState):
         textToSpeech.say(toSay)   
 
     #clear screen
+    screenManager.clear()
     pub_clear.publish(Empty())
     rospy.sleep(0.5)
 
