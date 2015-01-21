@@ -20,7 +20,7 @@ from letter_learning_interaction.text_shaper import TextShaper, ScreenManager
 
 import rospy
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, Point
+from geometry_msgs.msg import PoseStamped, Point, PointStamped
 from std_msgs.msg import String, Empty, Bool, Float64MultiArray, MultiArrayDimension
 from letter_learning_interaction.msg import Shape as ShapeMsg
 
@@ -67,6 +67,8 @@ SHAPE_LOGGING_PATH = rospy.get_param('~shape_log','') # path to a log file where
 #tablet params        
 CLEAR_SURFACE_TOPIC = rospy.get_param('~clear_writing_surface_topic','clear_screen')
 SHAPE_FINISHED_TOPIC = rospy.get_param('~shape_writing_finished_topic','shape_finished')
+#Name of topic to get gestures representing the active shape for demonstration
+GESTURE_TOPIC = rospy.get_param('~gesture_info_topic','gesture_info');
 
 #interaction params
 WORDS_TOPIC = rospy.get_param('~words_to_write_topic','words_to_write')
@@ -192,6 +194,15 @@ def onNewChildReceived(message):
     pub_clear.publish(Empty())
     rospy.sleep(0.5)
 
+activeLetter = None
+def onSetActiveShapeGesture(message):
+    global activeLetter
+
+    activeLetter, bb = screenManager.closest_letter(message.point.x, message.point.y)
+    
+    if activeLetter:
+        pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
+
 # ------------------------------- METHODS FOR DIFFERENT STATES IN STATE MACHINE
 
 def respondToDemonstration(infoFromPrevState):
@@ -306,7 +317,7 @@ def publishWord(infoFromPrevState):
     rospy.loginfo("STATE: PUBLISHING_WORD")
 
     shapedWord = textShaper.shapeWord(wordManager)
-    placedWord = screenManager.placeWord(shapedWord)
+    placedWord = screenManager.place_word(shapedWord)
 
     traj = make_traj_msg(placedWord, float(dt)/DOWNSAMPLEFACTOR)
 
@@ -929,6 +940,9 @@ if __name__ == "__main__":
 
     #listen for user-drawn shapes
     shape_subscriber = rospy.Subscriber(PROCESSED_USER_SHAPE_TOPIC, ShapeMsg, onUserDrawnShapeReceived)
+
+    #listen for user-drawn finger gestures
+    gesture_subscriber = rospy.Subscriber(GESTURE_TOPIC, PointStamped, onSetActiveShapeGesture); 
 
     #initialise display manager for shapes (manages positioning of shapes)
     from letter_learning_interaction.srv import *

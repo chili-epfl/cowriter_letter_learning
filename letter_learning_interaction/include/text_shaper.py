@@ -1,3 +1,6 @@
+import logging; logger = logging.getLogger("text_shaper")
+logger.setLevel(logging.DEBUG)
+
 import numpy
 from scipy import interpolate
 
@@ -128,6 +131,23 @@ class ShapedWord:
         self.bounding_boxes = self._compute_bbs()
         self.global_bounding_box = self._compute_global_bb()
 
+    def _isinbb(self, x,y, bb):
+            x1, y1, x2, y2 = bb
+            return x1 <= x <= x2 and y1 <= y <= y2
+
+    def ispointonword(self, x, y):
+        """
+        :returns: (False, None, None) if the point is not within the bounding
+        box of one of the letter, (True, <letter>, <bounding box>) if the point
+        lays on the bounding box of one of the letters.
+
+        """
+
+        for i, bb in enumerate(self.bounding_boxes):
+            if self._isinbb(x - self.origin[0], y - self.origin[1], bb):
+                return True, self.word[i], self.get_letters_bounding_boxes()[i]
+
+        return False, None, None
 
 
 class TextShaper:
@@ -186,6 +206,46 @@ class ScreenManager:
         self.width = width
         self.height = height
 
-    def placeWord(self, shapedWord):
-        shapedWord.origin = [self.width/2, self.height/2]
-        return shapedWord
+        self.words = []
+
+    def place_word(self, shaped_word):
+        """ Note that this method *modifies* its parameter!
+        """
+        shaped_word.origin = [self.width/2, self.height/2]
+        self.words.append(shaped_word)
+        return shaped_word
+
+    def closest_letter(self, x, y):
+        """ Returns the letter (+ boudning box) on the screen the closest to
+        (x,y) in screen coordinates, or None if no word has been drawn.
+
+        """
+        if not self.words:
+            logger.debug("Closest letter: no word drawn yet!")
+            return None, None
+
+        for word in self.words:
+            on_letter, letter, bb = word.ispointonword(x, y)
+            if on_letter:
+                logger.debug("Closest letter: on top of '%s' bounding box", letter)
+                return letter, bb
+
+        # not on top of a bounding-box: compute distances to each letter, and
+        # return the closest one
+
+        distances = {}
+
+        for word in self.words:
+            for i, bb in enumerate(word.get_letters_bounding_boxes()):
+                x1,y1,x2,y2 = bb
+                bbx =  float(x2 - x1)/2
+                bby =  float(y2 - y1)/2
+                distance = (x - bbx) * (x - bbx) + (y - bby) * (y - bby)
+                distances[distance] = (word.word[i], bb) # store the letter with its distance
+
+        shortest_distances = distances.keys()
+        shortest_distances.sort()
+        letter, bb = distances[shortest_distances[-1]]
+
+        logger.debug("Closest letter: '%s'", letter)
+        return letter, bb
