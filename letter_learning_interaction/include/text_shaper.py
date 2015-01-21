@@ -212,10 +212,13 @@ class ScreenManager:
 
         self.words = []
 
+    def clear(self):
+        self.words = []
+
     def place_word(self, shaped_word):
         """ Note that this method *modifies* its parameter!
         """
-        shaped_word.origin = [self.width/2, self.height/2]
+        shaped_word.origin = [self.width * 0.3, self.height * 0.6]
         self.words.append(shaped_word)
         return shaped_word
 
@@ -242,14 +245,18 @@ class ScreenManager:
         for word in self.words:
             for i, bb in enumerate(word.get_letters_bounding_boxes()):
                 x1,y1,x2,y2 = bb
-                bbx =  float(x2 - x1)/2
-                bby =  float(y2 - y1)/2
+                bbx =  float(x2 + x1)/2
+                bby =  float(y2 + y1)/2
                 distance = (x - bbx) * (x - bbx) + (y - bby) * (y - bby)
                 distances[distance] = (word.word[i], bb) # store the letter with its distance
 
-        shortest_distances = distances.keys()
-        shortest_distances.sort()
-        letter, bb = distances[shortest_distances[-1]]
+        shortest_distance = sorted(distances.keys())[0]
+        letter, bb = distances[shortest_distance]
 
         logger.debug("Closest letter: '%s'", letter)
         return letter, bb
+
+    def find_letter(self, path):
+
+        x,y = ShapeModeler.getShapeCentre(path)
+        return self.closest_letter(x, y)
