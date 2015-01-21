@@ -59,30 +59,34 @@ class ShapedWord:
         else:
             return self.global_bounding_box
 
+    @staticmethod
+    def compute_boundingbox(path):
+
+        x_min = 2000
+        y_min = 2000
+        x_max = 0
+        y_max = 0
+
+        for x,y in path:
+
+            if x < x_min:
+                x_min = x
+            if y < y_min:
+                y_min = y
+
+            if x > x_max:
+                x_max = x
+            if y > y_max:
+                y_max = y
+
+        return x_min, y_min, x_max, y_max
+
     def _compute_bbs(self):
 
         bbs = []
 
         for path in self._paths:
-
-            x_min = 2000
-            y_min = 2000
-            x_max = 0
-            y_max = 0
-
-            for x,y in path:
-
-                if x < x_min:
-                    x_min = x
-                if y < y_min:
-                    y_min = y
-
-                if x > x_max:
-                    x_max = x
-                if y > y_max:
-                    y_max = y
-
-            bbs.append((x_min, y_min, x_max, y_max))
+            bbs.append(ShapedWord.compute_boundingbox(path))
 
         return bbs
 
