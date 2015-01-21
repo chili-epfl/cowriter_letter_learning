@@ -6,6 +6,7 @@ Publish word to write based on fiducial marker (chilitag) detected.
 import rospy
 import tf
 from std_msgs.msg import String, Empty
+import operator
 
 special_tags = {'tag_17':'test',
                 'tag_302':'stop',
@@ -55,7 +56,7 @@ if __name__=="__main__":
     rospy.sleep(0.5)
     rate = rospy.Rate(10)
     tagsDetected = set();
-    prevWord = []
+    prevWord = None
     wordToPublish = None
     groups = {}
     
@@ -70,6 +71,7 @@ if __name__=="__main__":
             if not tagDetected: 
                 if tag in tagsDetected:
                     tagsDetected.remove(tag)
+                    groups = {}
             else:
                 if not tagsDetected:
                     tagsDetected.add(tag)
@@ -91,27 +93,25 @@ if __name__=="__main__":
                                     letter1 = tags_words_mapping[tag]
                                     letter2 = tags_words_mapping[prevTag]
                                     
-                                    groups.setdefault(letter1,set([letter1]))
-                                    groups.setdefault(letter2,set([letter2]))
+                                    groups.setdefault(letter1,{letter1:0})
+                                    groups.setdefault(letter2,{letter2:0})
                                     
                                     
-                                    if d<0.2 and r<0.3:
-                                        groups[letter1].add(letter2)
-                                        groups[letter2].add(letter1)
+                                    if d<0.12 and r<0.3:
+                                        groups[letter1][letter2] = pos[0]
+                                        groups[letter2][letter1] = -pos[0]
                                     
                                     if len(groups[letter1])==3:
-                                        #print('word detected with :')
-                                        print(groups[letter1])
-                                        groups = {}
+                                        word = sorted(groups[letter1].items(), key=operator.itemgetter(1))
+                                        wordToPublish = word[0][0] + word[1][0] + word[2][0]
                                     elif len(groups[letter2])==3:
-                                        #print('word detected with :')
-                                        print(groups[letter2])
-                                        groups = {}
+                                        word = sorted(groups[letter2].items(), key=operator.itemgetter(1))
+                                        wordToPublish = word[0][0] + word[1][0] + word[2][0]
                                     
                             except tf.ExtrapolationException:
                                 pass
-            '''
-            if wordToPublish:
+            
+            if wordToPublish != prevWord:
                 rospy.loginfo('Publishing word: '+wordToPublish);
 
                 if tag in special_tags:
@@ -137,8 +137,8 @@ if __name__=="__main__":
                 rospy.logdebug("Ok, waiting for a new word")
                 
                 tagsDetected = set();
-                wordToPublish = None
-                groups = {}'''
+                prevWord = wordToPublish
+                groups = {}
                     
     rate.sleep()
     
