@@ -48,7 +48,7 @@ public class UserDrawingView extends View {
         super(context, attrs);
 
         paint.setAntiAlias(true);
-        paint.setColor(Color.GREEN);
+        paint.setColor(Color.argb(255, 67, 77, 88));
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeJoin(Paint.Join.ROUND);
         paint.setStrokeWidth(STROKE_WIDTH);

@@ -101,7 +101,7 @@ public class MainActivity extends RosActivity {
         userGestureView = (UserDrawingView)findViewById(R.id.gestureView);
         userGestureView.setRespondToFinger(true);
         userGestureView.setRespondToStylus(false);
-        userGestureView.setColor(Color.RED);
+        userGestureView.setColor(Color.argb(200,217,191,119));
         userGestureView.setFingerStrokeFinishedCallable(new MessageCallable<Integer, ArrayList<double[]>>() {
             @Override
             public Integer call(ArrayList<double[]> message) {

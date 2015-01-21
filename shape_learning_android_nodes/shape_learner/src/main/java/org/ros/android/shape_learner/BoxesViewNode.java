@@ -82,7 +82,7 @@ public class BoxesViewNode extends View implements NodeMain {
                 String type = message.getLayout().getDim().get(0).getLabel();
                 if (type.contains("select")) {
                     currentPaint.setStyle(Paint.Style.FILL_AND_STROKE);
-                    currentPaint.setColor(Color.argb(128,255,100,100));
+                    currentPaint.setColor(Color.argb(128,125,110,164));
                 }
                 else {
                     currentPaint.setStyle(Paint.Style.STROKE);
