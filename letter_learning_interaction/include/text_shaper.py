@@ -6,22 +6,36 @@ from scipy import interpolate
 
 from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight()
 
-SIZESCALE_HEIGHT = 0.035   #Desired height of shape (metres) (because of grid used by shape_display_manager)
-SIZESCALE_WIDTH = 0.023    #Desired width of shape (metres) (@todo this should be set by shape_display_manager)
+SIZESCALE_HEIGHT = 0.016   #Desired height of 'a' (metres)
+SIZESCALE_WIDTH = 0.016    #Desired width of 'a' (metres)
 
-LETTER_SCALES = {'a': 0.4,
-                 'c': 0.4,
-                 'e': 0.4,
-                 'i': 0.3,
-                 'm': 0.4,
-                 'n': 0.4,
-                 'o': 0.4,
-                 'r': 0.4,
-                 's': 0.4,
-                 'u': 0.4,
-                 'v': 0.4,
-                 'x': 0.4}
-
+# (width, height_above_baseline, height_below_baseline) with reference a = (1,1,0)
+LETTER_BOUNDINGBOXES = {'a': (1.00, 1., 0.),
+                        'b': (1.38, 2.38, 0.),
+                        'c': (1.00, 1., 0.),
+                        'd': (1.25, 1.89, 0.),
+                        'e': (1.16, 1., 0.),
+                        'f': (0.91, 2.38, 1.33),
+                        'g': (1.21, 1., 1.33),
+                        'h': (1.22, 2.38, 0.),
+                        'i': (0.72, 1., 0.),
+                        'j': (0.86, 1., 1.33),
+                        'k': (1.20, 2.38, 0.),
+                        'l': (1.12, 2.38, 0.),
+                        'm': (2.08, 1., 0.),
+                        'n': (1.55, 1., 0.),
+                        'o': (1.06, 1., 0.),
+                        'p': (1.20, 1., 1.33),
+                        'q': (1.44, 1., 1.33),
+                        'r': (1.00, 1., 0.),
+                        's': (1.30, 1., 0.),
+                        't': (0.93, 1.89, 0.),
+                        'u': (1.33, 1., 0.),
+                        'v': (1.58, 1., 0.),
+                        'w': (1.88, 1., 0.),
+                        'x': (1.90, 1., 0.),
+                        'y': (1.34, 1., 1.33),
+                        'z': (1.38, 1., 1.33)}
 
 class ShapedWord:
     """ Container for the paths of the letters of a given word.
@@ -156,7 +170,8 @@ class ShapedWord:
 
 class TextShaper:
 
-    def shapeWord(self, word, downsampling_factor=None):
+    @staticmethod
+    def shapeWord(word, downsampling_factor=None):
         """Assembles the paths of the letters of the given word into a global shape.
 
         :param word: a ShapeLearnerManager instance for the current word
@@ -172,7 +187,9 @@ class TextShaper:
 
             path = []
 
-            scale_factor = LETTER_SCALES.get(shape.shapeType, 1.0)
+            w, ah, bh = LETTER_BOUNDINGBOXES[shape.shapeType]
+            scale_factor_h = ah + bh # height ratio between this letter and a 'a'
+            #no need for a width scaling since the shape are only *height*-normalized (cf below)
 
             glyph = ShapeModeler.normaliseShapeHeight(shape.path)
             numPointsInShape = len(glyph)/2  
@@ -183,12 +200,12 @@ class TextShaper:
             # connect the letter to the ending point of the previous one
             offset_x = offset_y = 0
             if len(paths) > 0:
-                offset_x = paths[-1][-1][0] - x_shape[0] * SIZESCALE_WIDTH * scale_factor
-                offset_y = paths[-1][-1][1] + y_shape[0] * SIZESCALE_HEIGHT * scale_factor
+                offset_x = paths[-1][-1][0] - x_shape[0] * SIZESCALE_WIDTH
+                offset_y = paths[-1][-1][1] + y_shape[0] * SIZESCALE_HEIGHT * scale_factor_h
 
             for i in range(numPointsInShape):
-                x = x_shape[i] * SIZESCALE_WIDTH * scale_factor
-                y = -y_shape[i] * SIZESCALE_HEIGHT * scale_factor
+                x = x_shape[i] * SIZESCALE_WIDTH
+                y = -y_shape[i] * SIZESCALE_HEIGHT * scale_factor_h
 
                 x += offset_x
                 y += offset_y
@@ -245,8 +262,8 @@ class ScreenManager:
         for word in self.words:
             for i, bb in enumerate(word.get_letters_bounding_boxes()):
                 x1,y1,x2,y2 = bb
-                bbx =  float(x2 + x1)/2
-                bby =  float(y2 + y1)/2
+                bbx = float(x2 + x1)/2
+                bby = float(y2 + y1)/2
                 distance = (x - bbx) * (x - bbx) + (y - bby) * (y - bby)
                 distances[distance] = (word.word[i], bb) # store the letter with its distance
 
