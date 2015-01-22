@@ -117,9 +117,12 @@ pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10)
 # ---------------------------------------- CALLBACK METHODS FOR ROS SUBSCRIBERS
 
 activeLetter = None
-demoShapeReceived = None
+demoShapesReceived = []
 def onUserDrawnShapeReceived(shape):
-    global demoShapeReceived
+    """
+    The main task here is to identify the letter(s) we got demos for
+    """
+    global demoShapesReceived
     global activeLetter
 
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
@@ -140,7 +143,7 @@ def onUserDrawnShapeReceived(shape):
                 rospy.logwarn('Received demonstration, but unable to find the letter that was demonstrated! Ignoring it.')
                 return
 
-        demoShapeReceived = shape #replace any existing feedback with new
+        demoShapesReceived = [shape] #replace any existing feedback with new
 
     else:
         pass #ignore feedback
@@ -224,56 +227,69 @@ def onSetActiveShapeGesture(message):
 def respondToDemonstration(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION")
-    demoShapeReceived = infoFromPrevState['demoShapeReceived']
-    shape = demoShapeReceived.path
-    shapeName = demoShapeReceived.shapeType
+    demoShapesReceived = infoFromPrevState['demoShapesReceived']
 
-    shape = downsampleShape(shape)
+    # update the shape models with the incoming demos
+    new_shapes = []
+    for shape in demoShapesReceived:
+        glyph = shape.path
+        shapeName = shape.shapeType
 
-    if naoSpeaking:
-        global demo_response_phrases_counter
-        try:
-            toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
-        except TypeError: #string wasn't meant to be formatted
-            toSay = demo_response_phrases[demo_response_phrases_counter]
-        demo_response_phrases_counter += 1
-        if demo_response_phrases_counter==len(demo_response_phrases):
-            demo_response_phrases_counter = 0
-        textToSpeech.say(toSay)
-        rospy.loginfo('NAO: '+toSay)
+        glyph = downsampleShape(glyph)
+
+        if naoSpeaking:
+            global demo_response_phrases_counter
+            try:
+                toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
+            except TypeError: #string wasn't meant to be formatted
+                toSay = demo_response_phrases[demo_response_phrases_counter]
+            demo_response_phrases_counter += 1
+            if demo_response_phrases_counter==len(demo_response_phrases):
+                demo_response_phrases_counter = 0
+            textToSpeech.say(toSay)
+            rospy.loginfo('NAO: '+toSay)
 
 
-    rospy.loginfo("Received demo for " + shapeName)
-    shapeIndex = wordManager.currentCollection.index(shapeName)
-    shape = wordManager.respondToDemonstration(shapeIndex, shape)
+        rospy.loginfo("Received demo for " + shapeName)
+        shapeIndex = wordManager.currentCollection.index(shapeName)
+        shape = wordManager.respondToDemonstration(shapeIndex, glyph)
+
+        new_shapes.append(shape)
+
     state_goTo = deepcopy(drawingLetterSubstates)
     nextState = state_goTo.pop(0)
-    infoForNextState = {'state_goTo': state_goTo, 'state_cameFrom': "RESPONDING_TO_DEMONSTRATION",'shapesToPublish': [shape]}
+    infoForNextState = {'state_goTo': state_goTo, 'state_cameFrom': "RESPONDING_TO_DEMONSTRATION",'shapesToPublish': new_shapes}
     return nextState, infoForNextState
 
 def respondToDemonstrationWithFullWord(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION_FULL_WORD')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
-    demoShapeReceived = infoFromPrevState['demoShapeReceived']
-    shape = demoShapeReceived.path
-    shapeName = demoShapeReceived.shapeType
+    demoShapesReceived = infoFromPrevState['demoShapesReceived']
 
-    shape = downsampleShape(shape)
-    if naoSpeaking:
-        global demo_response_phrases_counter
-        try:
-            toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
-        except TypeError: #string wasn't meant to be formatted
-            toSay = demo_response_phrases[demo_response_phrases_counter]
-        demo_response_phrases_counter += 1
-        if demo_response_phrases_counter==len(demo_response_phrases):
-            demo_response_phrases_counter = 0
-        textToSpeech.say(toSay)
-        rospy.loginfo('NAO: '+toSay)
+    # 1- update the shape models with the incoming demos
+    for shape in demoShapesReceived:
+        glyph = shape.path
+        shapeName = shape.shapeType
 
-    rospy.loginfo("Received demo for " + shapeName)
-    shapeIndex = wordManager.currentCollection.index(shapeName)
-    shape = wordManager.respondToDemonstration(shapeIndex, shape)
+        glyph = downsampleShape(glyph)
+            
+        if naoSpeaking:
+            global demo_response_phrases_counter
+            try:
+                toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
+            except TypeError: #string wasn't meant to be formatted
+                toSay = demo_response_phrases[demo_response_phrases_counter]
+            demo_response_phrases_counter += 1
+            if demo_response_phrases_counter==len(demo_response_phrases):
+                demo_response_phrases_counter = 0
+            textToSpeech.say(toSay)
+            rospy.loginfo('NAO: '+toSay)
+
+        rospy.loginfo("Received demo for " + shapeName)
+        shapeIndex = wordManager.currentCollection.index(shapeName)
+        wordManager.respondToDemonstration(shapeIndex, glyph)
+
+    # 2- display the update word
 
     #clear screen
     pub_clear.publish(Empty())
@@ -716,10 +732,10 @@ def waitForFeedback(infoFromPrevState):
         infoForNextState['state_goTo'] = [nextState]
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
 
-    global demoShapeReceived    
-    if demoShapeReceived is not None:
-        infoForNextState ['demoShapeReceived'] = demoShapeReceived
-        demoShapeReceived = None
+    global demoShapesReceived    
+    if demoShapesReceived:
+        infoForNextState ['demoShapesReceived'] = demoShapesReceived
+        demoShapesReceived = []
         nextState = "RESPONDING_TO_DEMONSTRATION_FULL_WORD"   
         infoForNextState['state_goTo'] = [nextState] #ensure robot is connected before going to that state
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
