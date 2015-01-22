@@ -30,12 +30,25 @@ tags_words_mapping = {'tag_5':'cow',
                       'tag_18':'eau'
                       }
 
-tags_words_mapping.update(special_tags)
+#tags_words_mapping.update(special_tags)
 
 # Add individual letters: tag IDs are the ASCII code of the letter
 for char in range(ord('a'),ord('z') + 1):
     tags_words_mapping["tag_%d" % char] = chr(char)
 
+def cmp(tag1, tag2):
+    test = True
+    while test:
+        try:
+            t = tf_listener.getLatestCommonTime(tag1, tag2)
+            pos, rot = tf_listener.lookupTransform(tag1, tag2, t)
+            test = False
+        except tf.ExtrapolationException:
+            pass
+    dif = (int)(pos[0]<0)
+    return 2*dif-1
+    
+    
 if __name__=="__main__":
     rospy.init_node("word_detector") 
     
@@ -56,65 +69,44 @@ if __name__=="__main__":
     rospy.sleep(0.5)
     rate = rospy.Rate(10)
     tagsDetected = set();
-    prevWord = None
-    wordToPublish = None
+    prevWord = ''
+    wordToPublish = ''
     groups = {}
-    
-    
-    test = False
+    ok_go = False
 
     while not rospy.is_shutdown():
         for tag in tags_words_mapping:
             
-            tagDetected = tf_listener.frameExists(tag);  
+            ok_go = tf_listener.frameExists('tag_341')
+            
+            tagDetected = tf_listener.frameExists(tag)
+            if tagDetected:
+                try:
+                    t = tf_listener.getLatestCommonTime(tag, 'v4l_frame')
+                    (trans,rot) = tf_listener.lookupTransform(tag, 'v4l_frame', t)
+                    if rot[2]-rot[3]>0.2:
+                        tagDetected = False
+                except tf.ExtrapolationException:
+                    tagDetected = False
             
             if not tagDetected: 
                 if tag in tagsDetected:
                     tagsDetected.remove(tag)
                     groups = {}
             else:
-                if not tagsDetected:
-                    tagsDetected.add(tag)
-                else:
-                    
-                    for prevTag in frozenset(tagsDetected):
-                        if prevTag != tag:
-                            
-                            try:
-                                if tf_listener.frameExists(tag) and tf_listener.frameExists(prevTag):
-                                    t = tf_listener.getLatestCommonTime(tag, prevTag)
-                                    pos, rot = tf_listener.lookupTransform(tag, prevTag, t)
-                                    d = abs(pos[0]) + abs(pos[1]) + abs(pos[2])
-                                    r = abs(rot[0]) + abs(rot[1]) + abs(rot[2])
-                                    
-                                    tagsDetected.add(tag)
-                                    noCommonTime = False
-                                    
-                                    letter1 = tags_words_mapping[tag]
-                                    letter2 = tags_words_mapping[prevTag]
-                                    
-                                    groups.setdefault(letter1,{letter1:0})
-                                    groups.setdefault(letter2,{letter2:0})
-                                    
-                                    
-                                    if d<0.12 and r<0.3:
-                                        groups[letter1][letter2] = pos[0]
-                                        groups[letter2][letter1] = -pos[0]
-                                    
-                                    if len(groups[letter1])==3:
-                                        word = sorted(groups[letter1].items(), key=operator.itemgetter(1))
-                                        wordToPublish = word[0][0] + word[1][0] + word[2][0]
-                                    elif len(groups[letter2])==3:
-                                        word = sorted(groups[letter2].items(), key=operator.itemgetter(1))
-                                        wordToPublish = word[0][0] + word[1][0] + word[2][0]
-                                    
-                            except tf.ExtrapolationException:
-                                pass
+                tagsDetected.add(tag)
+                                
+            if ok_go:
+                word = sorted(tagsDetected,cmp)
+                wordToPublish = ''
+                for letter in word:
+                    wordToPublish += tags_words_mapping[letter]
             
-            if wordToPublish != prevWord:
+            
+            if not wordToPublish in prevWord:
                 rospy.loginfo('Publishing word: '+wordToPublish);
 
-                if tag in special_tags:
+                '''if tag in special_tags:
                     message = String()
                     message.data = wordToPublish
                     pub_special.publish(message)
@@ -125,10 +117,22 @@ if __name__=="__main__":
                     elif wordToPublish == 'test':
                         message = Empty()
                         pub_test.publish(message)
-                else:
-                    message = String()
-                    message.data = wordToPublish
-                    pub_words.publish(message)
+                else:'''
+                message = String()
+                message.data = wordToPublish
+                pub_words.publish(message)
+                
+                tagsDetected = set();
+                prevWord = wordToPublish
+                groups = {}
+                
+                test = True
+                while test:
+                    test = tf_listener.frameExists('tag_341')
+                    rospy.sleep(0.5)
+                
+                print('out of loop')
+                ok_go = False
 
                 tf_listener = tf.TransformListener(True, rospy.Duration(0.1))
                 rospy.logdebug("Sleeping a bit to clear the tf cache...")
@@ -136,9 +140,7 @@ if __name__=="__main__":
                                 #it's not likely to get two words within 5s)
                 rospy.logdebug("Ok, waiting for a new word")
                 
-                tagsDetected = set();
-                prevWord = wordToPublish
-                groups = {}
+                
                     
     rate.sleep()
     
