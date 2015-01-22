@@ -45,7 +45,7 @@ public class BoxesViewNode extends View implements NodeMain {
         currentPaint.setStyle(Paint.Style.STROKE);
         currentPaint.setStrokeJoin(Paint.Join.ROUND);
         currentPaint.setStrokeCap(Paint.Cap.ROUND);
-        currentPaint.setStrokeWidth(5);
+        currentPaint.setStrokeWidth(10);
 
         boxes = new ArrayList<RectF>();
     }
@@ -86,7 +86,7 @@ public class BoxesViewNode extends View implements NodeMain {
                 }
                 else {
                     currentPaint.setStyle(Paint.Style.STROKE);
-                    currentPaint.setColor(Color.GRAY);
+                    currentPaint.setColor(Color.argb(100,100,95,150));
                 }
 
                 double left = DisplayMethods.M2PX(message.getData()[0]);
