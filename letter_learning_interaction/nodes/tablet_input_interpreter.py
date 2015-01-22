@@ -32,7 +32,7 @@ from shape_learning.shape_modeler import ShapeModeler
 from letter_learning_interaction.msg import Shape as ShapeMsg
 
 positionToShapeMappingMethod = 'basedOnClosestShapeToPosition';
-shapePreprocessingMethod = "longestStroke";
+shapePreprocessingMethod = "merge" #"longestStroke";
 
 
 # ---------------------------------------------------- LISTENING FOR USER SHAPE
@@ -72,7 +72,9 @@ def userShapePreprocessor(message):
 def onUserDrawnShapeReceived(path, shapePreprocessingMethod, positionToShapeMappingMethod):
 
     #preprocess to turn multiple strokes into one path
-    if(shapePreprocessingMethod == 'longestStroke'):
+    if(shapePreprocessingMethod == 'merge'):
+        path = processShape_mergeStrokes(strokes); 
+    elif(shapePreprocessingMethod == 'longestStroke'):
         path = processShape_longestStroke(strokes); 
     else:
         path = processShape_firstStroke(strokes);
@@ -109,6 +111,16 @@ def processShape_longestStroke(strokes):
             longestStroke = stroke;
             length_longestStroke = strokeLength;
     return longestStroke;
+
+def processShape_mergeStrokes(strokes):
+    x_shape = []
+    y_shape = []
+    for stroke in strokes:
+        nbpts = stroke.shape[0] / 2
+        x_shape.extend(stroke[:nbpts,0])
+        y_shape.extend(stroke[nbpts:,0])
+
+    return numpy.array(x_shape + y_shape)
     
 def processShape_firstStroke(strokes):
     return strokes[0];        
