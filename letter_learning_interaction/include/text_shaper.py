@@ -9,6 +9,8 @@ from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight(
 SIZESCALE_HEIGHT = 0.016   #Desired height of 'a' (metres)
 SIZESCALE_WIDTH = 0.016    #Desired width of 'a' (metres)
 
+TEMPLATE_SCALING = 1.0 # scale factor for the reference templates
+
 # (width, height_above_baseline, height_below_baseline) with reference a = (1,1,0)
 LETTER_BOUNDINGBOXES = {'a': (1.00, 1., 0.),
                         'b': (1.38, 2.38, 0.),
@@ -227,9 +229,9 @@ class TextShaper:
         for letter in word:
             w, ah, bh = LETTER_BOUNDINGBOXES[letter]
 
-            w *= SIZESCALE_WIDTH
-            ah *= SIZESCALE_HEIGHT
-            bh *= SIZESCALE_HEIGHT
+            w *= SIZESCALE_WIDTH * TEMPLATE_SCALING
+            ah *= SIZESCALE_HEIGHT * TEMPLATE_SCALING
+            bh *= SIZESCALE_HEIGHT * TEMPLATE_SCALING
 
             bb = (current_x, -bh, current_x + w, ah)
 
