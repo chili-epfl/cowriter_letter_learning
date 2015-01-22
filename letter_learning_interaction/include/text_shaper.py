@@ -190,7 +190,7 @@ class TextShaper:
             path = []
 
             w, ah, bh = LETTER_BOUNDINGBOXES[shape.shapeType]
-            scale_factor_h = ah + bh # height ratio between this letter and a 'a'
+            scale_factor = ah + bh # height ratio between this letter and a 'a'
             #no need for a width scaling since the shape are only *height*-normalized (cf below)
 
             glyph = ShapeModeler.normaliseShapeHeight(shape.path)
@@ -202,12 +202,12 @@ class TextShaper:
             # connect the letter to the ending point of the previous one
             offset_x = offset_y = 0
             if len(paths) > 0:
-                offset_x = paths[-1][-1][0] - x_shape[0] * SIZESCALE_WIDTH
-                offset_y = paths[-1][-1][1] + y_shape[0] * SIZESCALE_HEIGHT * scale_factor_h
+                offset_x = paths[-1][-1][0] - x_shape[0] * SIZESCALE_WIDTH * scale_factor
+                offset_y = paths[-1][-1][1] + y_shape[0] * SIZESCALE_HEIGHT * scale_factor
 
             for i in range(numPointsInShape):
-                x = x_shape[i] * SIZESCALE_WIDTH
-                y = -y_shape[i] * SIZESCALE_HEIGHT * scale_factor_h
+                x = x_shape[i] * SIZESCALE_WIDTH * scale_factor
+                y = -y_shape[i] * SIZESCALE_HEIGHT * scale_factor
 
                 x += offset_x
                 y += offset_y
