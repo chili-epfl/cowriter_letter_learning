@@ -128,22 +128,37 @@ def onUserDrawnShapeReceived(shape):
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
        or stateMachine.get_state() == "ASKING_FOR_FEEDBACK"):
 
-        if activeLetter:
-            shape.shapeType = activeLetter
-            activeLetter = None
-            rospy.loginfo('Received demonstration for selected letter ' + shape.shapeType)
+        nbpts = len(shape.path)/2
+        path = zip(shape.path[:nbpts], [-y for y in shape.path[nbpts:]])
+        demo_from_template = screenManager.split_path_from_template(path)
+        if demo_from_template:
+            rospy.loginfo('Received template demonstration for letters ' + str(demo_from_template.keys()))
+
+            for name, path in demo_from_template.items():
+
+                flatpath = [x for x, y in path]
+                flatpath.extend([-y for x, y in path])
+
+                demoShapesReceived.append(ShapeMsg(path=flatpath, shapeType=name))
+
         else:
-            letter, bb = screenManager.find_letter(shape.path)
 
-            if letter:
-                shape.shapeType = letter
-                pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
-                rospy.loginfo('Received demonstration for ' + shape.shapeType)
+            if activeLetter:
+                shape.shapeType = activeLetter
+                activeLetter = None
+                rospy.loginfo('Received demonstration for selected letter ' + shape.shapeType)
             else:
-                rospy.logwarn('Received demonstration, but unable to find the letter that was demonstrated! Ignoring it.')
-                return
+                letter, bb = screenManager.find_letter(shape.path)
 
-        demoShapesReceived = [shape] #replace any existing feedback with new
+                if letter:
+                    shape.shapeType = letter
+                    pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
+                    rospy.loginfo('Received demonstration for ' + shape.shapeType)
+                else:
+                    rospy.logwarn('Received demonstration, but unable to find the letter that was demonstrated! Ignoring it.')
+                    return
+
+            demoShapesReceived = [shape] #replace any existing feedback with new
 
     else:
         pass #ignore feedback

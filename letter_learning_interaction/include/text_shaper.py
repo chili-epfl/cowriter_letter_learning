@@ -249,6 +249,9 @@ class ScreenManager:
         self.height = height
 
         self.words = []
+        
+        self.ref_word = ""
+        self.ref_boundingboxes = []
 
     def clear(self):
         self.words = []
@@ -261,11 +264,15 @@ class ScreenManager:
         return shaped_word
 
     def place_reference_boundingboxes(self, word):
+
         bbs = TextShaper.reference_boundingboxes(word)
 
         origin = [self.width * 0.3, self.height * 0.3]
 
-        return [(x1 + origin[0], y1 + origin[1], x2 + origin[0], y2 + origin[1]) for x1, y1, x2, y2 in bbs]
+        self.ref_word = word 
+        self.ref_boundingboxes = [(x1 + origin[0], y1 + origin[1], x2 + origin[0], y2 + origin[1]) for x1, y1, x2, y2 in bbs]
+
+        return self.ref_boundingboxes
 
     def closest_letter(self, x, y):
         """ Returns the letter (+ bounding box) on the screen the closest to
@@ -305,3 +312,77 @@ class ScreenManager:
 
         x,y = ShapeModeler.getShapeCentre(path)
         return self.closest_letter(x, y)
+
+    def split_path_from_template(self, path):
+        """ Returns a dict of ('letter':path)s by spliting a given path (typically, a full
+        word) on the boundaries of the current screen reference bounding boxes.
+
+        Returns an empty dict if the path does not intersect with all the
+        letters' bounding boxes.
+
+        """
+        path_bb = ShapedWord.compute_boundingbox(path)
+
+
+        # first, check that the path does intersect with *each* of the
+        # reference bbs.
+        for bb in self.ref_boundingboxes:
+            if not ScreenManager.intersect(bb, path_bb):
+                return {}
+
+        current_bb = 0
+
+        glyphs = {}
+        glyph = []
+        for i, point in enumerate(path):
+
+            x,y = point
+
+            glyph.append((x,y))
+
+            if x > self.ref_boundingboxes[current_bb][2]: # x > bb.x_max
+
+                # last bounding box? put everythin remaining bits in the last glyph
+                if current_bb == len(self.ref_boundingboxes)-1:
+                    glyph.extend(path[i+1:])
+                    break
+                else:
+                    glyphs[self.ref_word[current_bb]] = glyph[:]
+
+                current_bb += 1
+                glyph = []
+
+        glyphs[self.ref_word[current_bb]] = glyph[:]
+        return glyphs
+
+    @staticmethod
+    def intersect(bb1, bb2):
+        """ Returns True if two bounding boxes intersect.
+        """
+        x11,y11,x12,y12 = bb1
+        x21,y21,x22,y22 = bb2
+
+        return False if x11 > x22 or x21 > x12 or y11 > y22 or y21 > y12 else True
+
+    def _compute_global_ref_bb(self):
+
+        gx_min = 2000
+        gy_min = 2000
+        gx_max = 0
+        gy_max = 0
+
+        for x_min,y_min,x_max,y_max in self.ref_boundingboxes:
+
+            if x_min < gx_min:
+                gx_min = x_min
+            if y_min < gy_min:
+                gy_min = y_min
+
+            if x_max > gx_max:
+                gx_max = x_max
+            if y_max > gy_max:
+                gy_max = y_max
+
+        return gx_min, gy_min, gx_max, gy_max
+
+
