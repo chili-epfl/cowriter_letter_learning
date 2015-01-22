@@ -274,10 +274,11 @@ class ScreenManager:
 
         return self.ref_boundingboxes
 
-    def closest_letter(self, x, y):
+    def closest_letter(self, x, y, strict=False):
         """ Returns the letter (+ bounding box) on the screen the closest to
         (x,y) in screen coordinates, or None if no word has been drawn.
 
+        If strict=True, returns a letter only if (x,y) is *on* (the bounding box of) a letter
         """
         if not self.words:
             logger.debug("Closest letter: no word drawn yet!")
@@ -288,6 +289,9 @@ class ScreenManager:
             if on_letter:
                 logger.debug("Closest letter: on top of '%s' bounding box", letter)
                 return letter, bb
+
+        if strict:
+            return None, None
 
         # not on top of a bounding-box: compute distances to each letter, and
         # return the closest one

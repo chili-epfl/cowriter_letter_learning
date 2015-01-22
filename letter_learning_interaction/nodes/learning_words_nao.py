@@ -232,7 +232,7 @@ def onNewChildReceived(message):
 def onSetActiveShapeGesture(message):
     global activeLetter
 
-    activeLetter, bb = screenManager.closest_letter(message.point.x, message.point.y)
+    activeLetter, bb = screenManager.closest_letter(message.point.x, message.point.y, strict=True)
     
     if activeLetter:
         pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
