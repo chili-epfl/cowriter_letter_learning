@@ -255,11 +255,13 @@ class ScreenManager:
 
     def clear(self):
         self.words = []
+        self.ref_word = []
+        self.ref_boundingboxes = []
 
     def place_word(self, shaped_word):
         """ Note that this method *modifies* its parameter!
         """
-        shaped_word.origin = [self.width * 0.3, self.height * 0.7]
+        shaped_word.origin = [self.width * 0.25, self.height * 0.7]
         self.words.append(shaped_word)
         return shaped_word
 
@@ -267,7 +269,7 @@ class ScreenManager:
 
         bbs = TextShaper.reference_boundingboxes(word)
 
-        origin = [self.width * 0.3, self.height * 0.3]
+        origin = [self.width * 0.25, self.height * 0.25]
 
         self.ref_word = word 
         self.ref_boundingboxes = [(x1 + origin[0], y1 + origin[1], x2 + origin[0], y2 + origin[1]) for x1, y1, x2, y2 in bbs]

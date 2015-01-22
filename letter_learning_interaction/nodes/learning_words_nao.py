@@ -307,6 +307,7 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
     # 2- display the update word
 
     #clear screen
+    screenManager.clear()
     pub_clear.publish(Empty())
     rospy.sleep(0.5)
 
