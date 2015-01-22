@@ -353,6 +353,13 @@ def publishWord(infoFromPrevState):
     #pub_bounding_boxes.publish(make_bounding_box_msg(placedWord.get_global_bb(), selected=False))
     ###
 
+    ref_boundingboxes = screenManager.place_reference_boundingboxes(wordManager.currentCollection)
+    for bb in ref_boundingboxes:
+        pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=False))
+        rospy.sleep(0.2) #leave some time for the tablet to process the bbs
+
+
+
     trajStartPosition = traj.poses[0].pose.position
 
     if naoConnected:

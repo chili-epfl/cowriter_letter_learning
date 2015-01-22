@@ -217,6 +217,27 @@ class TextShaper:
 
         return ShapedWord(word.currentCollection, paths)
 
+    @staticmethod
+    def reference_boundingboxes(word):
+
+        bbs = []
+
+        current_x = 0
+
+        for letter in word:
+            w, ah, bh = LETTER_BOUNDINGBOXES[letter]
+
+            w *= SIZESCALE_WIDTH
+            ah *= SIZESCALE_HEIGHT
+            bh *= SIZESCALE_HEIGHT
+
+            bb = (current_x, -bh, current_x + w, ah)
+
+            bbs.append(bb)
+            current_x += w
+
+        return bbs
+
 class ScreenManager:
 
     def __init__(self, width, height):
@@ -235,12 +256,19 @@ class ScreenManager:
     def place_word(self, shaped_word):
         """ Note that this method *modifies* its parameter!
         """
-        shaped_word.origin = [self.width * 0.3, self.height * 0.6]
+        shaped_word.origin = [self.width * 0.3, self.height * 0.7]
         self.words.append(shaped_word)
         return shaped_word
 
+    def place_reference_boundingboxes(self, word):
+        bbs = TextShaper.reference_boundingboxes(word)
+
+        origin = [self.width * 0.3, self.height * 0.3]
+
+        return [(x1 + origin[0], y1 + origin[1], x2 + origin[0], y2 + origin[1]) for x1, y1, x2, y2 in bbs]
+
     def closest_letter(self, x, y):
-        """ Returns the letter (+ boudning box) on the screen the closest to
+        """ Returns the letter (+ bounding box) on the screen the closest to
         (x,y) in screen coordinates, or None if no word has been drawn.
 
         """
