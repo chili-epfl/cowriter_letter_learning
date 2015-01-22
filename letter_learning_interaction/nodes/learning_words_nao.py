@@ -246,23 +246,27 @@ def respondToDemonstration(infoFromPrevState):
 
     # update the shape models with the incoming demos
     new_shapes = []
+
+    letters = "".join([s.shapeType for s in demoShapesReceived])
+    
+    if naoSpeaking:
+        global demo_response_phrases_counter
+        try:
+            toSay = demo_response_phrases[demo_response_phrases_counter] % letters
+        except TypeError: #string wasn't meant to be formatted
+            toSay = demo_response_phrases[demo_response_phrases_counter]
+        demo_response_phrases_counter += 1
+        if demo_response_phrases_counter==len(demo_response_phrases):
+            demo_response_phrases_counter = 0
+        textToSpeech.say(toSay)
+        rospy.loginfo('NAO: '+toSay)
+
+
     for shape in demoShapesReceived:
         glyph = shape.path
         shapeName = shape.shapeType
 
         glyph = downsampleShape(glyph)
-
-        if naoSpeaking:
-            global demo_response_phrases_counter
-            try:
-                toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
-            except TypeError: #string wasn't meant to be formatted
-                toSay = demo_response_phrases[demo_response_phrases_counter]
-            demo_response_phrases_counter += 1
-            if demo_response_phrases_counter==len(demo_response_phrases):
-                demo_response_phrases_counter = 0
-            textToSpeech.say(toSay)
-            rospy.loginfo('NAO: '+toSay)
 
 
         rospy.loginfo("Received demo for " + shapeName)
@@ -281,25 +285,27 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
     demoShapesReceived = infoFromPrevState['demoShapesReceived']
 
+    letters = "".join([s.shapeType for s in demoShapesReceived])
+    
+    if naoSpeaking:
+        global demo_response_phrases_counter
+        try:
+            toSay = demo_response_phrases[demo_response_phrases_counter] % letters
+        except TypeError: #string wasn't meant to be formatted
+            toSay = demo_response_phrases[demo_response_phrases_counter]
+        demo_response_phrases_counter += 1
+        if demo_response_phrases_counter==len(demo_response_phrases):
+            demo_response_phrases_counter = 0
+        textToSpeech.say(toSay)
+        rospy.loginfo('NAO: '+toSay)
+
+
     # 1- update the shape models with the incoming demos
     for shape in demoShapesReceived:
         glyph = shape.path
         shapeName = shape.shapeType
 
         glyph = downsampleShape(glyph)
-            
-        if naoSpeaking:
-            global demo_response_phrases_counter
-            try:
-                toSay = demo_response_phrases[demo_response_phrases_counter]%shapeName
-            except TypeError: #string wasn't meant to be formatted
-                toSay = demo_response_phrases[demo_response_phrases_counter]
-            demo_response_phrases_counter += 1
-            if demo_response_phrases_counter==len(demo_response_phrases):
-                demo_response_phrases_counter = 0
-            textToSpeech.say(toSay)
-            rospy.loginfo('NAO: '+toSay)
-
         rospy.loginfo("Received demo for " + shapeName)
         shapeIndex = wordManager.currentCollection.index(shapeName)
         wordManager.respondToDemonstration(shapeIndex, glyph)
@@ -422,7 +428,7 @@ def waitForShapeToFinish(infoFromPrevState):
         ref_boundingboxes = screenManager.place_reference_boundingboxes(wordManager.currentCollection)
         for bb in ref_boundingboxes:
             pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=False))
-            rospy.sleep(0.1) #leave some time for the tablet to process the bbs
+            rospy.sleep(0.2) #leave some time for the tablet to process the bbs
 
 
 
