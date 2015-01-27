@@ -69,14 +69,14 @@ class InteractionSettings():
             word_again_response_phrases = ["%s again, okay.", "I thought I already did %s", "You like to practice this word"]
             
         elif(language.lower()=='french'):
-            introPhrase = "Bonjour. Je suis Nao. Peux-tu me montrer un mot ?"
+            introPhrase = "Allez, on écrit des mots"
             testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
             thankYouPhrase = "Merci pour ton aide !"
             
             #The following phrases may have an optional string formatted into them
-            demo_response_phrases = ["D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Ce %s est pas mal", "Bon, j'essaye comme toi", "Ok, à moi", "À mon tour", "Merci, je vais essayer"]
-            asking_phrases_after_feedback = ["C'est mieux ?", "Et comme ça ?", "Tu en penses quoi ?", "Qu'est-ce que tu en penses ?", "Il y a une différence ?", "Ça va cette fois ?", "Je me suis amélioré ?", "Tu trouves que c'est mieux ?"]
-            asking_phrases_after_word = ["Bon, qu'est ce que tu en penses ?", "Pas facile !", "C'est bien comme ça ?", "Je crois que j'ai besoin d'aide.", "Et voilà !"]
+            demo_response_phrases = ["Ok", "D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Bon", "Ce %s est pas mal", "Bon, j'essaye comme toi", "D'accord", "Ok, à moi", "À mon tour", "Ok", "Merci, je vais essayer"]
+            asking_phrases_after_feedback = ["C'est mieux ?", "Voilà", "Et comme ça ?", "Tu en penses quoi ?", "Alors ?", "Qu'est-ce que tu en penses ?", "Il y a une différence ?", "Ça va cette fois ?", "Je me suis amélioré ?", "Tu trouves que c'est mieux ?"]
+            asking_phrases_after_word = ["Bon, qu'est ce que tu en penses ?", "Pas facile !", "Voilà", "C'est bien comme ça ?", "Bon", "Je crois que j'ai besoin d'aide.", "Et voilà !"]
             word_response_phrases = ["D'accord pour %s", "Ok, j'essaye %s", "Bon, je devrais y arriver", "D'accord", "%s ? ok"]
             word_again_response_phrases = ["Encore %s ? bon, d'accord.", "Je crois que j'ai déjà fait %s", "On dirait que tu aimes bien %s !", "Encore ?"]
             
