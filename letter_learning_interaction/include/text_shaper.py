@@ -3,6 +3,7 @@ logger.setLevel(logging.DEBUG)
 
 import numpy
 from scipy import interpolate
+from collections import OrderedDict
 
 from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight()
 
@@ -340,7 +341,7 @@ class ScreenManager:
 
         current_bb = 0
 
-        glyphs = {}
+        glyphs = OrderedDict()
         glyph = []
         for i, point in enumerate(path):
 
