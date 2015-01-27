@@ -77,3 +77,13 @@ roslaunch letter_learning_interaction nao_learning.launch use_sim_nao:=false nao
 
 *Note that console output can be viewed with `rosrun rqt_console rqt_console`.*
 
+Tips
+----
+
+- the following command lets you send random words to Nao for writing (change
+  `french` accordingly. `cut -c1-4` only keeps the first 4 letters. You can
+  change that as well)
+
+```
+watch -n15 'rl -c1 /usr/share/dict/french | cut -c1-4 | xargs rostopic pub -1 words_to_write std_msgs/String'
+```
