@@ -56,7 +56,7 @@ if __name__=="__main__":
     SPECIAL_TOPIC = rospy.get_param('~special_cards_topic','special_symbols');
     STOP_TOPIC = rospy.get_param('~stop_card_detected_topic','stop_learning');
     TEST_TOPIC = rospy.get_param('~test_card_detected_topic','test_learning');
-    CAMERA_FRAME = rospy.get_param('~detector_frame_id','CameraTop_frame');
+    CAMERA_FRAME = rospy.get_param('~detector_frame_id','camera_frame');
 
     LANGUAGE = rospy.get_param('~language','english');
 
@@ -72,39 +72,46 @@ if __name__=="__main__":
     prevWord = ''
     wordToPublish = ''
     groups = {}
-    ok_go = False
 
     while not rospy.is_shutdown():
+
+        try:
+            tf_listener.waitForTransform(CAMERA_FRAME, "tag_341", rospy.Time(), rospy.Duration(5.0))
+        except tf.Exception: # likely a timeout
+            continue
+
+        rospy.loginfo("Got a 'GO' card! preparing a word to publish")
+
         for tag in tags_words_mapping:
-            
-            ok_go = tf_listener.frameExists('tag_341')
-            
+
             tagDetected = tf_listener.frameExists(tag)
             if tagDetected:
                 try:
-                    t = tf_listener.getLatestCommonTime(tag, 'v4l_frame')
-                    (trans,rot) = tf_listener.lookupTransform(tag, 'v4l_frame', t)
+                    t = tf_listener.getLatestCommonTime(tag, CAMERA_FRAME)
+                    (trans,rot) = tf_listener.lookupTransform(tag, CAMERA_FRAME, t)
                     if rot[2]-rot[3]>0.2:
                         tagDetected = False
                 except tf.ExtrapolationException:
                     tagDetected = False
-            
+
             if not tagDetected: 
                 if tag in tagsDetected:
                     tagsDetected.remove(tag)
                     groups = {}
             else:
                 tagsDetected.add(tag)
-                                
-            if ok_go:
-                word = sorted(tagsDetected,cmp)
-                wordToPublish = ''
-                for letter in word:
-                    wordToPublish += tags_words_mapping[letter]
-            
-            
-            if not wordToPublish in prevWord:
-                rospy.loginfo('Publishing word: '+wordToPublish);
+
+        if not tagsDetected:
+            rospy.logwarn("Got a 'GO' card, but unable to find any letter!")
+        else:
+
+            sortedTags = sorted(tagsDetected,cmp)
+            wordToPublish = ''.join([tags_words_mapping[tag] for tag in sortedTags])
+
+            if wordToPublish in prevWord:
+                rospy.loginfo("I'm not publishing '%s' since it is still the same word (of part thereof)." % wordToPublish);
+            else:
+                rospy.loginfo('Publishing word: '+ wordToPublish);
 
                 '''if tag in special_tags:
                     message = String()
@@ -125,23 +132,14 @@ if __name__=="__main__":
                 tagsDetected = set();
                 prevWord = wordToPublish
                 groups = {}
-                
-                test = True
-                while test:
-                    test = tf_listener.frameExists('tag_341')
-                    rospy.sleep(0.5)
-                
-                print('out of loop')
-                ok_go = False
 
-                tf_listener = tf.TransformListener(True, rospy.Duration(0.1))
-                rospy.logdebug("Sleeping a bit to clear the tf cache...")
-                rospy.sleep(5) #wait till the tag times out (in the use context
-                                #it's not likely to get two words within 5s)
-                rospy.logdebug("Ok, waiting for a new word")
-                
-                
-                    
+
+        tf_listener = tf.TransformListener(True, rospy.Duration(0.1))
+        rospy.logdebug("Sleeping a bit to clear the tf cache...")
+        rospy.sleep(5) #wait till the tag times out (in the use context
+                        #it's not likely to get two words within 5s)
+        rospy.logdebug("Ok, waiting for a new word")
+
     rate.sleep()
     
     if rospy.is_shutdown():
