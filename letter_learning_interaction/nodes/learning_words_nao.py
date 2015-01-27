@@ -152,7 +152,7 @@ def onUserDrawnShapeReceived(shape):
 
                 if letter:
                     shape.shapeType = letter
-                    pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
+                    #pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
                     rospy.loginfo('Received demonstration for ' + shape.shapeType)
                 else:
                     rospy.logwarn('Received demonstration, but unable to find the letter that was demonstrated! Ignoring it.')
@@ -234,8 +234,8 @@ def onSetActiveShapeGesture(message):
 
     activeLetter, bb = screenManager.closest_letter(message.point.x, message.point.y, strict=True)
     
-    if activeLetter:
-        pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
+    #if activeLetter:
+    #    pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
 
 # ------------------------------- METHODS FOR DIFFERENT STATES IN STATE MACHINE
 
