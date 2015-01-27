@@ -227,7 +227,10 @@ public class SystemDrawingViewNode extends ImageView implements NodeMain {
             // wait until appropriate time to start animation
             Duration delay = mMessage.getHeader().getStamp().subtract(mConnectedNode.getCurrentTime());
             if(WAIT_TO_SYNC_TRAJ){
-                try{Thread.sleep(Math.round((delay.totalNsecs() / 1000000.0)));}
+                try{
+                    // TODO: we should still publish the watchdog clear!
+                    Thread.sleep(Math.round((delay.totalNsecs() / 1000000.0)));
+                }
                 catch(InterruptedException e){
                     Log.e(TAG, "InterruptedException: " + e.getMessage());
                 }
