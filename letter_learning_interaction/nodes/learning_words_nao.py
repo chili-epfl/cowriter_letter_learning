@@ -219,6 +219,7 @@ def onNewChildReceived(message):
         else:
             motionProxy.rest()
             motionProxy.setStiffnesses(["Head", "LArm", "RArm"], 0.5)
+            motionProxy.setStiffnesses(["LHipYawPitch", "LHipRoll", "LHipPitch", "RHipYawPitch", "RHipRoll", "RHipPitch"], 0.8)
 
     if naoSpeaking:
         if alternateSidesLookingAt:
@@ -1045,6 +1046,7 @@ if __name__ == "__main__":
             else:
                 motionProxy.rest()
                 motionProxy.setStiffnesses(["Head", "LArm", "RArm"], 0.5)
+                motionProxy.setStiffnesses(["LHipYawPitch", "LHipRoll", "LHipPitch", "RHipYawPitch", "RHipRoll", "RHipPitch"], 0.8)
                 motionProxy.wbEnableEffectorControl(effector, False) #turn whole body motion control off
 
             armJoints_standInit = motionProxy.getAngles(effector,True)
