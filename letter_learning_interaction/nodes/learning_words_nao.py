@@ -8,6 +8,27 @@ receives interaction inputs e.g. which words to write and user demonstrations,
 passes these demonstrations to the learning algorithm, and publishes the 
 resulting learned shapes for the robot and tablet to draw.
 """
+import os.path
+import logging; generatedWordLogger = logging.getLogger("word_logger")
+
+def configure_logging(path = "/tmp"):
+
+    if path:
+        if os.path.isdir(path):
+            path = os.path.join(path, "words_generated.log")
+        handler = logging.FileHandler(path)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+    else:
+        handler = logging.NullHandler()
+
+    generatedWordLogger.addHandler(handler)
+    generatedWordLogger.setLevel(logging.DEBUG)
+
+# HACK: should properly configure the path from an option
+configure_logging()
+
 import numpy
 from scipy import interpolate
 
@@ -380,7 +401,7 @@ def publishWord(infoFromPrevState):
     shapedWord = textShaper.shapeWord(wordManager)
     placedWord = screenManager.place_word(shapedWord)
 
-    traj = make_traj_msg(placedWord, float(dt)/DOWNSAMPLEFACTOR)
+    traj = make_traj_msg(placedWord, float(dt)/DOWNSAMPLEFACTOR, log = True)
 
     # downsampled the trajectory for the robot arm motion
     downsampledShapedWord = deepcopy(placedWord)
@@ -893,14 +914,19 @@ def make_bounding_box_msg(bbox, selected=False):
 
     return bb
 
-def make_traj_msg(shapedWord, deltaT):
+def make_traj_msg(shapedWord, deltaT, log = False):
 
     traj = Path()
     traj.header.frame_id = FRAME
     traj.header.stamp = rospy.Time.now() + rospy.Duration(delayBeforeExecuting)
 
     pointIdx = 0
-    for path in shapedWord.get_letters_paths():
+    paths = shapedWord.get_letters_paths()
+
+    if log:
+        generatedWordLogger.info("%s" % [[(x,-y) for x, y in path] for path in paths])
+
+    for path in paths:
         first = True
         for x, y in path:
             point = PoseStamped()

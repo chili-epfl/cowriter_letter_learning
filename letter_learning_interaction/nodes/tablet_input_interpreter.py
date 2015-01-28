@@ -25,7 +25,7 @@ def configure_logging(path = "/tmp"):
 
     if path:
         if os.path.isdir(path):
-            path = os.path.join(path, "words.log")
+            path = os.path.join(path, "words_demonstrations.log")
         handler = logging.FileHandler(path)
         handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
