@@ -135,6 +135,10 @@ def onUserDrawnShapeReceived(shape):
             rospy.loginfo('Received template demonstration for letters ' + str(demo_from_template.keys()))
 
             for name, path in demo_from_template.items():
+                # HACK: do not learn multi-stroke letters for now
+                if name in ['i', 'j', 't']:
+                    rospy.logwarn('Received demonstration for multi-stroke letter <%s>: ignoring it.' % name)
+                    continue
 
                 flatpath = [x for x, y in path]
                 flatpath.extend([-y for x, y in path])
