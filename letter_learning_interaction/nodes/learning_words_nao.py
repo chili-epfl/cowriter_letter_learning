@@ -896,6 +896,7 @@ def make_traj_msg(shapedWord, deltaT):
 
     pointIdx = 0
     for path in shapedWord.get_letters_paths():
+        first = True
         for x, y in path:
             point = PoseStamped()
 
@@ -903,6 +904,10 @@ def make_traj_msg(shapedWord, deltaT):
             point.pose.position.y = y
             point.header.frame_id = FRAME
             point.header.stamp = rospy.Time(t0 + pointIdx * deltaT) #@TODO allow for variable time between points for now
+
+            if first:
+                point.header.seq = 1
+                first = False
 
             traj.poses.append(deepcopy(point))
 
