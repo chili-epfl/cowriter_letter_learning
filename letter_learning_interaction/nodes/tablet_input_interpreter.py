@@ -18,6 +18,27 @@ Implemented but not in use:
 - Receiving touch and long-touch gestures and converting that to feedback for
 the learning algorithm from when it was touch-feedback only.
 """
+import os.path
+import logging; wordLogger = logging.getLogger("word_logger")
+
+def configure_logging(path = "/tmp"):
+
+    if path:
+        if os.path.isdir(path):
+            path = os.path.join(path, "words.log")
+        handler = logging.FileHandler(path)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+    else:
+        handler = logging.NullHandler()
+
+    wordLogger.addHandler(handler)
+    wordLogger.setLevel(logging.DEBUG)
+
+# HACK: should properly configure the path from an option
+configure_logging()
+
 
 import rospy
 import numpy
@@ -70,6 +91,15 @@ def userShapePreprocessor(message):
 
 # ------------------------------------------------------- PROCESSING USER SHAPE
 def onUserDrawnShapeReceived(path, shapePreprocessingMethod, positionToShapeMappingMethod):
+
+    #### Log all the strokes
+    xypaths = []
+    for stroke in strokes:
+        stroke = stroke.flatten().tolist()
+        nbpts = len(stroke)/2
+        xypaths.append(zip(stroke[:nbpts], stroke[nbpts:]))
+    wordLogger.info(str(xypaths))
+    ####
 
     #preprocess to turn multiple strokes into one path
     if(shapePreprocessingMethod == 'merge'):

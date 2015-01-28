@@ -131,6 +131,7 @@ def onUserDrawnShapeReceived(shape):
         nbpts = len(shape.path)/2
         path = zip(shape.path[:nbpts], [-y for y in shape.path[nbpts:]])
         demo_from_template = screenManager.split_path_from_template(path)
+
         if demo_from_template:
             rospy.loginfo('Received template demonstration for letters ' + str(demo_from_template.keys()))
 
