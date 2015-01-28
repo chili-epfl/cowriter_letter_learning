@@ -186,6 +186,7 @@ class TextShaper:
         
         paths = []
 
+        offset_x = offset_y = 0
         for shape in word.shapesOfCurrentCollection():
 
             path = []
@@ -200,11 +201,9 @@ class TextShaper:
             x_shape = glyph[0:numPointsInShape].flatten().tolist()
             y_shape = glyph[numPointsInShape:].flatten().tolist()
 
-            # connect the letter to the ending point of the previous one
-            offset_x = offset_y = 0
-            if len(paths) > 0:
-                offset_x = paths[-1][-1][0] - x_shape[0] * SIZESCALE_WIDTH * scale_factor
-                offset_y = paths[-1][-1][1] + y_shape[0] * SIZESCALE_HEIGHT * scale_factor
+            if offset_x != 0 or offset_y != 0: # not the first letter
+                offset_x -= x_shape[0] * SIZESCALE_WIDTH * scale_factor
+                offset_y += y_shape[0] * SIZESCALE_HEIGHT * scale_factor
 
             for i in range(numPointsInShape):
                 x = x_shape[i] * SIZESCALE_WIDTH * scale_factor
@@ -213,9 +212,25 @@ class TextShaper:
                 x += offset_x
                 y += offset_y
 
+
                 path.append((x,y))
 
             paths.append(path)
+
+            if shape.shapeType in ['i', 'j']:
+                # HACK: waiting for proper multi-stroke learning
+                logger.info("Adding a 'dot' to the letter")
+                dot_path = [ (offset_x + 0.0 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.8 * SIZESCALE_WIDTH * scale_factor),
+                         (offset_x + 0.05 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.85 * SIZESCALE_HEIGHT * scale_factor),
+                         (offset_x + 0.0 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.85 * SIZESCALE_HEIGHT * scale_factor),
+                         (offset_x + 0.0 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.8 * SIZESCALE_HEIGHT * scale_factor)
+                        ]
+                paths.append(dot_path)
+
+            # connect the letter to the ending point of the previous one
+            offset_x = path[-1][0]
+            offset_y = path[-1][1]
+
 
 
         return ShapedWord(word.currentCollection, paths)
