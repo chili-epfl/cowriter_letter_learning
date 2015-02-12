@@ -110,20 +110,11 @@ class InteractionSettings():
             raise RuntimeError("parameters not found for this dataset ")
         else:
             with open(datasetParam, 'r') as f:
-                line = f.readline()
-                test = line.replace('[','').replace(']\n','')==shapeType
-                while test==False:
-                    line = f.readline()
-                    if line:
-                        test = line.replace('[','').replace(']\n','')==shapeType
-                    else:
+                initialParamValue = [0.0] * 20 #HACK: this (default) value should be independant from the number of params. Smthg like np.NaN would be better
+                for line in f.readline():
+                    if line[1:-2] == shapeType: # lines starting with [<letter>]\n
+                        initialParamValue = [float(s) for s in f.readline().split(",")]
                         break
-                if test:
-                    s = f.readline().replace('\n','')
-                    initialParamValue = (float)(s)
-                else:
-                    initialParamValue = 0.0
-                    print("parameters not found for shape "+ shapeType +'\n'+'Default : 0.0')
 
         settings = SettingsStruct(
                     shape_learning = shapeType,
@@ -134,6 +125,7 @@ class InteractionSettings():
                     initialBounds = initialBounds, 
                     initialBounds_stdDevMultiples = initialBounds_stdDevMultiples,
                     initialParamValue = initialParamValue, 
+                    paramFile = None, # used to store new updated params after demonstration
                     minParamDiff = 0.4)
         return settings
 
