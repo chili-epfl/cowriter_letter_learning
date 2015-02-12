@@ -138,9 +138,9 @@ class ShapedWord:
             #make shape have the appropriate number of points
             t_current = numpy.linspace(0, 1, len(x_shape))
             t_desired = numpy.linspace(0, 1, len(x_shape) / downsampling_factor)
-            f = interpolate.interp1d(t_current, x_shape[:], kind='cubic')
+            f = interpolate.interp1d(t_current, x_shape[:], kind='linear')
             x_shape = f(t_desired)
-            f = interpolate.interp1d(t_current, y_shape[:], kind='cubic')
+            f = interpolate.interp1d(t_current, y_shape[:], kind='linear')
             y_shape = f(t_desired)
 
             path = zip(x_shape, y_shape)

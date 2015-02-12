@@ -332,8 +332,9 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         glyph = shape.path
         shapeName = shape.shapeType
 
+        rospy.logdebug("Downsampling %s..." % shapeName)
         glyph = downsampleShape(glyph)
-        rospy.loginfo("Received demo for " + shapeName)
+        rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
         shapeIndex = wordManager.currentCollection.index(shapeName)
         wordManager.respondToDemonstration(shapeIndex, glyph)
 
@@ -887,9 +888,9 @@ def downsampleShape(shape):
     #make shape have the same number of points as the shape_modeler
     t_current = numpy.linspace(0, 1, numPointsInShape)
     t_desired = numpy.linspace(0, 1, NUMPOINTS_SHAPEMODELER)
-    f = interpolate.interp1d(t_current, x_shape, kind='cubic')
+    f = interpolate.interp1d(t_current, x_shape, kind='linear')
     x_shape = f(t_desired)
-    f = interpolate.interp1d(t_current, y_shape, kind='cubic')
+    f = interpolate.interp1d(t_current, y_shape, kind='linear')
     y_shape = f(t_desired)
 
     shape = []
