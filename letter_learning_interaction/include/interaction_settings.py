@@ -57,9 +57,14 @@ class InteractionSettings():
     @staticmethod
     def getPhrases(language):
         if(language.lower()=='english'):
-            introPhrase = "Hello. I'm Nao. Please show me a word to practice."
+            introPhrase = "Hello. I'm Nao."
             testPhrase = "Ok, test time. I'll try my best."
             thankYouPhrase = 'Thank you for your help.'
+            introLearningWordsPhrase = "Show me a word to practice."
+            introDrawingPhrase = 'Yes!, I want to draw.'
+            
+            againLearningWordsPhrase = 'I would like to play with the words again...'
+            againDrawingPhrase = 'What about drawing again? I love it'
             
             #The following phrases may have an optional string formatted into them
             demo_response_phrases = ["Okay, I'll try it like you", "So that's how you write %s", "That's a much better %s than mine", "I'll try to copy you","Let me try now","Thank you"]
@@ -82,7 +87,7 @@ class InteractionSettings():
             
         else:
             RuntimeError('Requested language ('+ language + ') not supported')
-        return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase
+        return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase
         
     @staticmethod
     def setDatasetDirectory(datasetDirectory_):

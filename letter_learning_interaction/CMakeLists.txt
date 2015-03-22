@@ -86,6 +86,8 @@ include_directories(
    nodes/tablet_input_interpreter.py
    nodes/learning_words_nao.py
    nodes/watchdog_clearer.py
+   nodes/activity_manager.py
+   nodes/drawing_nao.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

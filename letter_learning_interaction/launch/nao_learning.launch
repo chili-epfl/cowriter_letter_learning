@@ -5,6 +5,7 @@
 
     <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
     <arg name="nao_standing" default="true" /> <!-- if false, robot will stay in the 'crouched' pose, but still writing -->
+    <arg name="nao_speaking" default="true" />
     <arg name="nao_handedness" default="right" /> 
     <arg name="person_side" default="$(arg nao_handedness)" />   
         
@@ -33,6 +34,7 @@
     <arg name="shape_writing_finished_topic" default="shape_finished" />
     <arg name="user_drawn_shapes_topic" default="user_drawn_shapes" />
     <arg name="new_teacher_topic" default="new_child" />
+    <arg name="current_activity_topic" default="activity" />
     
     <!-- Outputs from learning algorithm -->
     <arg name="trajectory_visualization_topic" default="write_traj" /> 
@@ -50,7 +52,19 @@
     <rosparam param="/wait_to_sync_traj" subst_value="true">$(arg nao_writing)</rosparam> <!-- if using robot, tablet must wait to display at the same time as it -->
     <arg name="nao_ip_to_use" value="127.0.0.1" if="$(arg use_sim_nao)" /> <!-- look for local simulator -->
     <arg name="nao_ip_to_use" value="$(arg nao_ip)" unless="$(arg use_sim_nao)" />
-
+    
+    <!-- Redifined as a global variables -->
+    <param name="/activityManager/nao_ip" type="str" value="$(arg nao_ip_to_use)"/>
+    <param name="/activityManager/nao_speaking" type="bool" value="$(arg nao_speaking)" />
+    <param name="/activityManager/nao_writing" type="bool" value="$(arg nao_writing)" />
+    <param name="/activityManager/nao_standing" type="bool" value="$(arg nao_standing)" />
+    <param name="/activityManager/use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
+    <param name="/activityManager/language" type="str" value="$(arg language)"/>    
+    <param name="/activityManager/nao_handedness" type="str" value="$(arg nao_handedness)"/>
+    <param name="/activityManager/current_activity_topic" type="str" value="$(arg current_activity_topic)"/>
+    <param name="/activityManager/new_teacher_topic" type="str" value="$(arg new_teacher_topic)"/>
+    <param name="/activityManager/camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>  
+    <param name="/activityManager/clear_writing_surface_topic" type="str" value="$(arg clear_writing_surface_topic)"/>
 
     <!-- ##### END ARGUMENTS ##### -->  
     <group if="$(arg use_robot_in_interaction)" >
@@ -68,10 +82,12 @@
         </group>
     </group> 
 
-    <!-- Start the learning algorithm -->
-    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">
-        
-        <param name="use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
+    <!-- Start the node which switches the activities -->
+    <node pkg="letter_learning_interaction" type="activity_manager.py" name="activity_manager">
+	<param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
+	<param name="shape_log" type="str" value="$(arg shape_log)" />
+	<!--<param name="current_activity_topic" type="str" value="$(arg current_activity_topic)"/>
+	<param name="use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
         <param name="language" type="str" value="$(arg language)"/>
         <param name="nao_ip" type="str" value="$(arg nao_ip_to_use)"/>
         <param name="nao_handedness" type="str" value="$(arg nao_handedness)"/>
@@ -92,7 +108,30 @@
         <param name="trajectory_output_topic" type="str" value="$(arg trajectory_visualization_topic)"/>
         <param name="trajectory_output_nao_topic" type="str" value="$(arg trajectory_nao_topic)"/>        
         <param name="clear_writing_surface_topic" type="str" value="$(arg clear_writing_surface_topic)"/>
-        <param name="camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>
+        <param name="camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>-->
+    </node>
+
+    <!-- Start the drawer activity -->
+    <node pkg="letter_learning_interaction" type="drawing_nao.py" name="drawing_nao">
+        <param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
+        <param name="shape_log" type="str" value="$(arg shape_log)" />
+        <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" /> 
+    </node>
+
+    <!-- Start the learning algorithm -->
+    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">	    
+	<param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
+	<param name="test_request_topic" type="str" value="$(arg test_request_topic)"/>
+	<param name="processed_user_shape_topic" type="str" value="$(arg user_drawn_shapes_topic)"/>
+	<param name="words_to_write_topic" type="str" value="$(arg words_to_write_topic)"/>
+	<param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>
+	<param name="shape_writing_finished_topic" type="str" value="$(arg shape_writing_finished_topic)"/>
+	<param name="shape_log" type="str" value="$(arg shape_log)" />
+	<param name="trajectory_output_nao_topic" type="str" value="$(arg trajectory_nao_topic)"/>
+	<param name="trajectory_output_topic" type="str" value="$(arg trajectory_visualization_topic)"/>
+	<param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
+	<param name="writing_surface_frame_id" type="str" value="$(arg writing_surface_frame_id)"/>
+	<param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />    
     </node>
 
     <!-- Start the appropriate camera -->
@@ -102,16 +141,16 @@
         </include>
     </group>
     <group unless="$(arg use_external_camera)">
-        <include file="$(find nao_trajectory_following)/launch/nao_camera_controllable.launch">
+        <!--<include file="$(find nao_trajectory_following)/launch/nao_camera_controllable.launch">
             <arg name="nao_ip" value="$(arg nao_ip_to_use)"/>
-        </include>
+        </include>-->
     </group>
     
     <!-- Start the card detection -->
-    <include file="$(find ros_markers)/detect.launch" >
+    <!--<include file="$(find ros_markers)/detect.launch" >
         <arg name="camera_frame_id" value="$(arg word_detector_frame_id)"/>
         <arg name="image_topic" value="$(arg camera_image_topic)"/>
-    </include>
+    </include>-->
     <node pkg="letter_learning_interaction" type="word_card_detector.py" name="word_detector">
         <param name="detector_frame_id" type="str" value="$(arg word_detector_frame_id)"/>
         <param name="language" type="str" value="$(arg language)"/>
