@@ -35,6 +35,8 @@
     <arg name="user_drawn_shapes_topic" default="user_drawn_shapes" />
     <arg name="new_teacher_topic" default="new_child" />
     <arg name="current_activity_topic" default="activity" />
+    <arg name="time_activity_topic" default="time_activity" />
+
     
     <!-- Outputs from learning algorithm -->
     <arg name="trajectory_visualization_topic" default="write_traj" /> 
@@ -65,6 +67,9 @@
     <param name="/activityManager/new_teacher_topic" type="str" value="$(arg new_teacher_topic)"/>
     <param name="/activityManager/camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>  
     <param name="/activityManager/clear_writing_surface_topic" type="str" value="$(arg clear_writing_surface_topic)"/>
+    <param name="/activityManager/time_activity_topic" value="$(arg time_activity_topic)"/>
+
+
 
     <!-- ##### END ARGUMENTS ##### -->  
     <group if="$(arg use_robot_in_interaction)" >

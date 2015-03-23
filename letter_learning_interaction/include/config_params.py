@@ -22,6 +22,7 @@ naoSpeaking = naoSpeaking and naoConnected
 LANGUAGE = rospy.get_param('/activityManager/language','english')
 NAO_HANDEDNESS = rospy.get_param('/activityManager/nao_handedness','right')
 ACTIVITY_TOPIC = rospy.get_param('/activityManager/current_activity_topic','activity') #Controls the activity switch
+TIME_ACTIVITY_TOPIC = rospy.get_param('/activityManager/time_activity_topic','time_activity') #Controls the activity switch
 NEW_CHILD_TOPIC = rospy.get_param('/activityManager/new_teacher_topic','new_child');#Welcome a new teacher but don't reset learning algorithm's 'memory'
 PUBLISH_STATUS_TOPIC = rospy.get_param('/activityManager/camera_publishing_status_topic','camera_publishing_status') #Controls the camera based on the interaction state (turn it off for writing b/c CPU gets maxed)
 CLEAR_SURFACE_TOPIC = rospy.get_param('/activityManager/clear_writing_surface_topic','clear_screen')

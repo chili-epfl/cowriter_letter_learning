@@ -566,7 +566,6 @@ def stopInteraction(infoFromPrevState):
     rospy.loginfo("STATE: STOPPING")
     if naoSpeaking:
         textToSpeech.say(thankYouPhrase)
-        textToSpeech.say("I am in the word learning activity")
     if naoConnected:
         motionProxy.wbEnableEffectorControl(effector,False)
         motionProxy.rest()

@@ -2,10 +2,9 @@
 # coding: utf-8
 
 import rospy
-from std_msgs.msg import String
-
-from letter_learning_interaction.state_machine import StateMachine
-from std_msgs.msg import Empty
+from std_msgs.msg import String, Empty, Int32
+import time
+from letter_learning_interaction.state_machine import StateMachine 
 from letter_learning_interaction.helper import configure_logging, lookAndAskForFeedback
 from letter_learning_interaction.config_params import *
 from letter_learning_interaction.set_connexion import ConnexionToNao
@@ -28,8 +27,10 @@ introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrase
 #trajectory publishing parameters
 t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting)
 
+start_time = time.time()
 
-pub_activity = rospy.Publisher(ACTIVITY_TOPIC, String, queue_size=10)
+pub_activity = rospy.Publisher(ACTIVITY_TOPIC, String, queue_size=10) #Publishes the current activity which is performed
+pub_activity_time = rospy.Publisher('/activity_time', Int32, queue_size=10)  #Publishes the time spend in the current activity
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -42,7 +43,7 @@ changeActivityReceived = None
 def onChangeActivity(message):
     global changeActivityReceived
     changeActivityReceived = message.data
-    
+
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
 def startInteraction(infoFromPrevState):
@@ -110,26 +111,39 @@ def waitForRobotToConnect(infoFromPrevState):
 
              
 def activity(infoFromPrevState):
+    global start_time 
     global changeActivityReceived
+
+    
     if infoFromPrevState['state_cameFrom'] != "ACTIVITY":
         #print('------------------------------------------ waiting_for_robot_to_connect')
         rospy.loginfo("STATE: ACTIVITY")    
     
     if changeActivityReceived == 'drawing_nao':
-        pub_activity.publish('drawing_nao')
+        changeActivityReceived = " "
+        start_time = time.time()
+
         nextState = "ACTIVITY"
         infoForNextState = {'state_cameFrom': "ACTIVITY"}
     elif changeActivityReceived == 'learning_words_nao':
-        pub_activity.publish('learning_words_nao')
+        changeActivityReceived = " "
+        start_time = time.time()
+
         nextState = "ACTIVITY"
         infoForNextState = {'state_cameFrom': "ACTIVITY"}
     elif changeActivityReceived == 'make_performance_nao':
-        pub_activity.publish('make_performance_nao')
+        changeActivityReceived = " "
+        start_time = time.time()
+
         nextState = "ACTIVITY"
         infoForNextState = {'state_cameFrom': "ACTIVITY"}
     else:
         nextState = "ACTIVITY"
         infoForNextState = {'state_cameFrom': "ACTIVITY"}
+    rospy.sleep(1)        
+    end_time = time.time()
+    elapsed = end_time - start_time        
+    pub_activity_time.publish(elapsed)     
         
     if stopRequestReceived:
         nextState = "STOPPING"
@@ -165,8 +179,10 @@ if __name__ == "__main__":
     stateMachine.set_start("WAITING_FOR_ROBOT_TO_CONNECT")
     infoForStartState = {'state_goTo': ["STARTING_INTERACTION"], 'state_cameFrom': None}
 
+    #listen for when to stop
     stop_subscriber = rospy.Subscriber(STOP_TOPIC, Empty, onStopRequestReceived)
-    #change_activity_subscriber = rospy.Subscriber('activity_manager', String, onChangeActivity)
+    #listen for an activity change
+    change_activity_subscriber = rospy.Subscriber(ACTIVITY_TOPIC, String, onChangeActivity)
 
     from letter_learning_interaction.watchdog import Watchdog #TODO: Make a ROS server so that *everyone* can access the connection statuses
     tabletWatchdog = Watchdog('watchdog_clear/tablet', 0.4)

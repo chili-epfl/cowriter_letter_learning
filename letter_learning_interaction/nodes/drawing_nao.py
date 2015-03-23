@@ -144,8 +144,6 @@ def waitForTabletToConnect(infoFromPrevState):
 def stopInteraction(infoFromPrevState):
     #print('------------------------------------------ STOPPING')
     rospy.loginfo("STATE: STOPPING")
-    if naoSpeaking:
-        textToSpeech.say(thankYouPhrase)
     if naoConnected:
         motionProxy.wbEnableEffectorControl(effector,False)
         motionProxy.rest()
