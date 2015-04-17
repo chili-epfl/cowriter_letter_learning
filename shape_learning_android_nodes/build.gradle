@@ -19,34 +19,13 @@ task wrapper(type: Wrapper) {
 }
 
 buildscript {
-    def rosMavenPath = "$System.env.ROS_MAVEN_PATH".split(':').collect { 'file://' + it }
-    def rosMavenRepository = "$System.env.ROS_MAVEN_REPOSITORY"
-    repositories {
-        rosMavenPath.each { p ->
-            maven {
-                url p
-            }
-        }
-        mavenLocal()
-        maven {
-            url rosMavenRepository
-        }
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'org.ros.rosjava_bootstrap', name: 'gradle_plugins', version: '[0.1,0.3)'
-        classpath group: 'org.ros.rosjava_messages', name: 'trajectory_msgs', version: '[0.1,0.2)'
-        /*classpath 'com.android.tools.build:gradle:0.12.+'*/
-        classpath 'com.android.tools.build:gradle:1.0.0'
-    }
+    apply from: "https://github.com/rosjava/android_core/raw/indigo/buildscript.gradle"
 }
 
-apply plugin: 'catkin'
-
-
 allprojects {
-    group 'ch.chili.epfl.shape_learning_android_nodes'
-    version = project.catkin.pkg.version
+    repositories {
+        jcenter()
+    }
 }
 
 subprojects {

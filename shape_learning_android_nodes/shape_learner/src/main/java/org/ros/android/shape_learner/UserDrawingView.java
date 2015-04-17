@@ -29,6 +29,11 @@ public class UserDrawingView extends View {
     private boolean respondToFinger = false;
     private boolean respondToStylus = false;
     private static final float STROKE_WIDTH = 10f;
+    public long respTime;
+    public long writingTime;
+    public long firstPoint;
+    public long lastPoint;
+    public boolean respTime_flag = true;
 
     /** Need to track this so the dirty region can accommodate the stroke. **/
     private static final float HALF_STROKE_WIDTH = STROKE_WIDTH / 2;
@@ -143,6 +148,16 @@ public class UserDrawingView extends View {
         }
         else if(event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS){//only respond to inputs from the stylus
             if(respondToStylus){
+
+                if(respTime_flag) {
+                    firstPoint = System.currentTimeMillis();
+                    respTime = firstPoint - BoxesViewNode.startTime;
+                    respTime_flag = false;
+                }
+
+                lastPoint = System.currentTimeMillis();
+                writingTime = lastPoint - firstPoint;
+
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         path.moveTo(eventX, eventY);

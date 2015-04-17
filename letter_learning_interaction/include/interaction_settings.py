@@ -65,6 +65,8 @@ class InteractionSettings():
             
             againLearningWordsPhrase = 'I would like to play with the words again...'
             againDrawingPhrase = 'What about drawing again? I love it'
+            introJokePhrase = 'Do you want to hear a joke?'
+            againJokePhrase = 'I will tell you the joke again.'
             
             #The following phrases may have an optional string formatted into them
             demo_response_phrases = ["Okay, I'll try it like you", "So that's how you write %s", "That's a much better %s than mine", "I'll try to copy you","Let me try now","Thank you"]
@@ -87,7 +89,7 @@ class InteractionSettings():
             
         else:
             RuntimeError('Requested language ('+ language + ') not supported')
-        return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase
+        return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase
         
     @staticmethod
     def setDatasetDirectory(datasetDirectory_):

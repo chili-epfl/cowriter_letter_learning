@@ -23,7 +23,7 @@ SHAPE_LOGGING_PATH = rospy.get_param('~shape_log','') # path to a log file where
 #get appropriate angles for looking at things
 headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
 #initialise arrays of phrases to say at relevant times
-introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase = InteractionSettings.getPhrases(LANGUAGE)
+introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase = InteractionSettings.getPhrases(LANGUAGE)
 #trajectory publishing parameters
 t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting)
 
@@ -131,7 +131,7 @@ def activity(infoFromPrevState):
 
         nextState = "ACTIVITY"
         infoForNextState = {'state_cameFrom': "ACTIVITY"}
-    elif changeActivityReceived == 'make_performance_nao':
+    elif changeActivityReceived == 'joke_nao':
         changeActivityReceived = " "
         start_time = time.time()
 
@@ -154,7 +154,6 @@ def stopInteraction(infoFromPrevState):
     rospy.loginfo("STATE: STOPPING")
     if naoSpeaking:
         textToSpeech.say(thankYouPhrase)
-        textToSpeech.say("I am in the word learning activity")
     if naoConnected:
         motionProxy.wbEnableEffectorControl(effector,False)
         motionProxy.rest()

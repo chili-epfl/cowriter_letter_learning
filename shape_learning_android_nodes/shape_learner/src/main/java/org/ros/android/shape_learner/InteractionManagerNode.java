@@ -26,6 +26,7 @@ import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
 import nav_msgs.Path;
 import std_msgs.Empty;
+import std_msgs.Float32;
 
 /**
  * ROS node for capturing and publishing user interactions.
@@ -44,6 +45,10 @@ class InteractionManagerNode extends AbstractNodeMain {
     private String clearScreenTopicName;
     private Publisher<Path> userDrawnShapePublisher;
     private String userDrawnShapeTopicName;
+    private Publisher<Float32> timeResponsePublisher;
+    private String TimeResponseTopicName;
+    private Publisher<Float32> timeWritingPublisher;
+    private String TimeWritingTopicName;
 
     public void setTouchInfoTopicName(String topicName) {
         this.touchInfoTopicName = topicName;
@@ -52,9 +57,9 @@ class InteractionManagerNode extends AbstractNodeMain {
     public void setClearScreenTopicName(String topicName) {
         this.clearScreenTopicName = topicName;
     }
-    public void setUserDrawnShapeTopicName(String topicName) {
-        this.userDrawnShapeTopicName = topicName;
-    }
+    public void setUserDrawnShapeTopicName(String topicName) { this.userDrawnShapeTopicName = topicName; }
+    public void setTimeResponseTopicName(String topicName) {this.TimeResponseTopicName = topicName; }
+    public void setTimeWritingTopicName(String topicName) {this.TimeWritingTopicName = topicName; }
 
     @Override
     public GraphName getDefaultNodeName() {
@@ -74,6 +79,10 @@ class InteractionManagerNode extends AbstractNodeMain {
                 connectedNode.newPublisher(clearScreenTopicName, Empty._TYPE);
         this.userDrawnShapePublisher =
                 connectedNode.newPublisher(userDrawnShapeTopicName, Path._TYPE);
+        this.timeResponsePublisher =
+                connectedNode.newPublisher(TimeResponseTopicName, Float32._TYPE);
+        this.timeWritingPublisher =
+                connectedNode.newPublisher(TimeWritingTopicName, Float32._TYPE);
 
     }
 
@@ -127,5 +136,21 @@ class InteractionManagerNode extends AbstractNodeMain {
             publishUserDrawnShapeMessage(stroke);
         }
         publishUserDrawnShapeMessage(new ArrayList<double[]>()); //publish empty stroke to show message is done
+    }
+
+    public void publishTimeResponse(long x) {
+
+        Float32 time = timeResponsePublisher.newMessage();
+        time.setData(x);
+        timeResponsePublisher.publish(time);
+
+    }
+
+    public void publishTimeWriting(long x) {
+
+        Float32 time = timeWritingPublisher.newMessage();
+        time.setData(x);
+        timeWritingPublisher.publish(time);
+
     }
 }

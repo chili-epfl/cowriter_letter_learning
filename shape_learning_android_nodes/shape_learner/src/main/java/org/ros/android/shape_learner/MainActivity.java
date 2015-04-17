@@ -150,6 +150,8 @@ public class MainActivity extends RosActivity {
         systemDrawingViewNode.setClearWatchdogTopicName("watchdog_clear/tablet");
         systemDrawingViewNode.setFinishedShapeTopicName("shape_finished");
         interactionManagerNode.setUserDrawnShapeTopicName("user_drawn_shapes");
+        interactionManagerNode.setTimeResponseTopicName("time_response");
+        interactionManagerNode.setTimeWritingTopicName("time_writing");
 
         NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress());
         // At this point, the user has already been prompted to either enter the URI
@@ -242,6 +244,7 @@ public class MainActivity extends RosActivity {
             Log.e(TAG, "onClick() called - send button");
             interactionManagerNode.publishUserDrawnMessageMessage(userDrawnMessage);
             userDrawnMessage.clear(); //empty/reinitialise message
+            onStartWriting();
         }
     };
 
@@ -301,6 +304,12 @@ public class MainActivity extends RosActivity {
             }
         };
         timer.schedule(clearWatchdog, 0, timeBetweenWatchdogClears_ms);
+    }
+
+    public void onStartWriting(){
+        interactionManagerNode.publishTimeResponse(userDrawingsView.respTime);
+        interactionManagerNode.publishTimeWriting(userDrawingsView.writingTime);
+        userDrawingsView.respTime_flag = true;
     }
 
 }

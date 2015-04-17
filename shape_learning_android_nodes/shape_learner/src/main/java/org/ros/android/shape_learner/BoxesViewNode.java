@@ -35,6 +35,7 @@ public class BoxesViewNode extends View implements NodeMain {
 
     private String topicName;
     private String clearScreenTopicName;
+    public static long startTime;
 
     public BoxesViewNode(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -60,6 +61,7 @@ public class BoxesViewNode extends View implements NodeMain {
         for (RectF box : boxes) {
             canvas.drawRect(box, currentPaint);
         }
+        startTime = System.currentTimeMillis();
     }
 
     public void setTopicName(String topicName) {

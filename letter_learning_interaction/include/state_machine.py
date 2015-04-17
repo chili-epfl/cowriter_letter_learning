@@ -3,6 +3,7 @@
 from http://www.ibm.com/developerworks/linux/library/l-python-state/index.html
 """
 from string import upper
+import time
 class StateMachine:
     """Class for managing state machines.
     """
@@ -34,6 +35,7 @@ class StateMachine:
             raise  "InitializationError", "at least one state must be an end_state"
 
         while 1:
+            time.sleep(0.5)
             (newState, cargo) = handler(cargo)
             self.currentState = upper(newState)
             if self.currentState in self.endStates:

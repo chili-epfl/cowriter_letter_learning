@@ -19,10 +19,15 @@ from letter_learning_interaction.config_params import *
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PointStamped
-from std_msgs.msg import String, Empty, Bool, Float64MultiArray
+from std_msgs.msg import String, Empty, Bool, Float64MultiArray, Int16
 from letter_learning_interaction.msg import Shape as ShapeMsg
 from letter_learning_interaction.set_connexion import ConnexionToNao
 from copy import deepcopy
+
+from naoqi import ALProxy
+
+motion = ALProxy("ALMotion", "192.168.1.12", 9559)
+tracker = ALProxy("ALTracker", "192.168.1.12", 9559)
 
 rospy.init_node("learning_words_nao")
 
@@ -49,6 +54,7 @@ WORDS_TOPIC = rospy.get_param('words_to_write_topic','words_to_write')
 PROCESSED_USER_SHAPE_TOPIC = rospy.get_param('processed_user_shape_topic','user_shapes_processed');#Listen for user shapes -Currently not used- 
 TEST_TOPIC = rospy.get_param('test_request_topic','test_learning');#Listen for when test card has been shown to the robot
 STOP_TOPIC = rospy.get_param('stop_request_topic','stop_learning');#Listen for when stop card has been shown to the robot
+NB_REPETITIONS_TOPIC = rospy.get_param('nb_repetitions_topic','nb_repetitions');
 
 
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool, queue_size=10)
@@ -56,12 +62,14 @@ pub_traj = rospy.Publisher(SHAPE_TOPIC, Path, queue_size=10)
 pub_bounding_boxes = rospy.Publisher(BOUNDING_BOXES_TOPIC, Float64MultiArray, queue_size=10)
 pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path, queue_size=10)
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10)
+pub_nb_repetitions = rospy.Publisher(NB_REPETITIONS_TOPIC, Int16, queue_size=10)
+pub_current_demo = rospy.Publisher('current_demo', String, queue_size=10)
 
 
 #get appropriate angles for looking at things
 headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
 #initialise arrays of phrases to say at relevant times
-introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase = InteractionSettings.getPhrases(LANGUAGE)
+introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase = InteractionSettings.getPhrases(LANGUAGE)
 #trajectory publishing parameters
 t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting)
 
@@ -144,15 +152,19 @@ def onClearScreenReceived(message):
         rospy.logerr("Service call failed: %s",e)
 
 wordReceived = None
+nb_repetitions = 0
 def onWordReceived(message):
     global wordReceived 
+    global nb_repetitions
     if(stateMachine.get_state() == "WAITING_FOR_FEEDBACK"
             or stateMachine.get_state() == "WAITING_FOR_WORD"
             or stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
             or stateMachine.get_state() == "STARTING_INTERACTION"
             or stateMachine.get_state() is None): #state machine hasn't started yet - word probably came from input arguments
         wordReceived = message.data
-        rospy.loginfo('Received word: '+wordReceived)
+        rospy.loginfo('Received word: '+ wordReceived)
+        # Reset counter of repetitions
+        nb_repetitions = 0
     else:
         wordReceived = None #ignore 
 
@@ -273,6 +285,11 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
         shapeIndex = wordManager.currentCollection.index(shapeName)
         wordManager.respondToDemonstration(shapeIndex, glyph)
+        
+        demo = wordManager.currentDemo
+        msg = String()
+        msg.data = demo        
+        pub_current_demo.publish(msg)
 
     # 2- display the update word
 
@@ -451,8 +468,12 @@ def respondToNewWord(infoFromPrevState):
                 word_response_phrases_counter = 0
 
         rospy.loginfo('NAO: '+toSay)
-        textToSpeech.say(toSay)   
-
+        textToSpeech.say(toSay)  
+    
+    tracker.stopTracker()
+    tracker.unregisterAllTargets()
+    lookAtTablet(motionProxy, effector)
+    
     #clear screen
     screenManager.clear()
     pub_clear.publish(Empty())
@@ -481,12 +502,21 @@ def respondToNewWord(infoFromPrevState):
     return nextState, infoForNextState
 
 
-def askForFeedback(infoFromPrevState): 
+def askForFeedback(infoFromPrevState):
+    global nb_repetitions
     global nextSideToLookAt
+    
     #print('------------------------------------------ ASKING_FOR_FEEDBACK')
     rospy.loginfo("STATE: ASKING_FOR_FEEDBACK")
     centre = infoFromPrevState['centre']
     rospy.loginfo(infoFromPrevState['state_cameFrom'])
+    
+    # Publish the number of repetitions of the same word
+    nb_repetitions = nb_repetitions + 1
+    msg = Int16()
+    msg.data = nb_repetitions
+    pub_nb_repetitions.publish(msg)
+    
     if infoFromPrevState['state_cameFrom'] == "PUBLISHING_WORD":
         wordWritten = infoFromPrevState['wordWritten']
         rospy.loginfo('Asking for feedback on word '+wordWritten)
@@ -509,7 +539,7 @@ def askForFeedback(infoFromPrevState):
             else:
                 lookAndAskForFeedback(toSay, personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
 
-            lookAtTablet(motionProxy, effector)
+            #lookAtTablet(motionProxy, effector)
     elif infoFromPrevState['state_cameFrom'] == "PUBLISHING_LETTER":
         shapeType = infoFromPrevState['shapePublished']
         rospy.loginfo('Asking for feedback on letter '+shapeType)
@@ -532,7 +562,7 @@ def askForFeedback(infoFromPrevState):
             else:
                 lookAndAskForFeedback(toSay,personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
 
-            lookAtTablet(motionProxy, effector)
+            #lookAtTablet(motionProxy, effector)
 
     nextState = "WAITING_FOR_FEEDBACK"
     infoForNextState = {'state_cameFrom': "ASKING_FOR_FEEDBACK"}
@@ -564,8 +594,8 @@ def respondToTestCard(infoFromPrevState):
 def stopInteraction(infoFromPrevState):
     #print('------------------------------------------ STOPPING')
     rospy.loginfo("STATE: STOPPING")
-    if naoSpeaking:
-        textToSpeech.say(thankYouPhrase)
+    #if naoSpeaking:
+    #    textToSpeech.say(thankYouPhrase)
     if naoConnected:
         motionProxy.wbEnableEffectorControl(effector,False)
         motionProxy.rest()
@@ -643,11 +673,22 @@ def waitForWord(infoFromPrevState):
     if stopRequestReceived:
         nextState = "STOPPING"
         pub_camera_status.publish(False) #turn camera off
+
     return nextState, infoForNextState
 
 
 def waitForFeedback(infoFromPrevState):
     global changeActivityReceived
+    global motion
+    global tracker
+    targetName = "Face"
+    faceWidth = 0.1
+    tracker.registerTarget(targetName, faceWidth)
+
+    # Then, start tracker.
+    motion.setStiffnesses("Head", 1.0)
+    tracker.track(targetName)
+    
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_FEEDBACK":
         #print('------------------------------------------ WAITING_FOR_FEEDBACK')
         rospy.loginfo("STATE: WAITING_FOR_FEEDBACK")
@@ -663,6 +704,9 @@ def waitForFeedback(infoFromPrevState):
         nextState = "RESPONDING_TO_FEEDBACK"
         infoForNextState['state_goTo'] = [nextState]
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
+        # Stop tracker.
+        tracker.stopTracker()
+        tracker.unregisterAllTargets()
 
     global demoShapesReceived    
     if demoShapesReceived:
@@ -671,6 +715,9 @@ def waitForFeedback(infoFromPrevState):
         nextState = "RESPONDING_TO_DEMONSTRATION_FULL_WORD"   
         infoForNextState['state_goTo'] = [nextState] #ensure robot is connected before going to that state
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
+                # Stop tracker.
+        tracker.stopTracker()
+        tracker.unregisterAllTargets()
 
     global wordReceived
     if wordReceived is not None:
@@ -679,6 +726,9 @@ def waitForFeedback(infoFromPrevState):
         nextState = "RESPONDING_TO_NEW_WORD"
         infoForNextState['state_goTo'] = [nextState] #ensure robot is connected before going to that state
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
+                # Stop tracker.
+        tracker.stopTracker()
+        tracker.unregisterAllTargets()
 
     global testRequestReceived
     if testRequestReceived:
@@ -693,6 +743,9 @@ def waitForFeedback(infoFromPrevState):
     if changeActivityReceived != 'learning_words_nao':
         nextState = "PAUSE_INTERACTION"
         infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"}
+                # Stop tracker.
+        tracker.stopTracker()
+        tracker.unregisterAllTargets()
         
         #clear screen
         screenManager.clear()
@@ -707,7 +760,6 @@ def waitForFeedback(infoFromPrevState):
         rospy.sleep(0.1) #don't check again immediately
         nextState = "WAITING_FOR_FEEDBACK"
         infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"}
-
     return nextState, infoForNextState    
     
 
