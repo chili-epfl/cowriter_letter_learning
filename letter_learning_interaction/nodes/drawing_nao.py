@@ -47,6 +47,14 @@ changeActivityReceived = None
 def onChangeActivity(message):
     global changeActivityReceived
     changeActivityReceived = message.data
+    
+def trackFace():
+    targetName = "Face"
+    faceWidth = 0.1
+    tracker.registerTarget(targetName, faceWidth)
+    # Then, start tracker.
+    motion.setStiffnesses("Head", 1.0)
+    tracker.track(targetName)
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -117,67 +125,115 @@ def drawing(infoFromPrevState):
         names  = "Body"
         fractionMaxSpeed  = 0.2
         resting = [-0.007711887359619141, 0.07972598075866699, 1.3805580139160156, 0.15949392318725586, -0.7808480262756348, -1.061486005783081, 0.09506607055664062, 0.014799952507019043, -0.24846601486206055, -0.07205605506896973, -0.7009961605072021, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.24846601486206055, 0.06447005271911621, -0.7133519649505615, 2.112546443939209, -1.186300277709961, -0.07512402534484863, 1.4067201614379883, -0.16878199577331543, 0.7822980880737305, 1.0769100189208984, -0.10128593444824219, 0.018800020217895508]
-        if naoSpeaking:
-            toSay = '\RSPD=70\ A mouse was having a very bad time. She could find no food at all.'
+        tracker.stopTracker()         
+        if naoSpeaking:             
+            toSay = '\RSPD=70\ A mouse was having a very bad time.'
             textToSpeech.say(toSay)            
             motionProxy.setStiffnesses("Body", 1.0)           
-            angles  = [0.0014920234680175781, 0.5147144794464111, 1.406636118888855, 0.09966802597045898, -2.046398162841797, -0.27761197090148926, 0.970980167388916, 0.012799978256225586, -0.30062198638916016, -0.059783935546875, -0.6641800403594971, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.30062198638916016, 0.042994022369384766, -0.6734678745269775, 2.112546443939209, -1.186300277709961, -0.06438612937927246, 1.6337518692016602, -0.02611994743347168, 1.8269520998001099, 0.5553500652313232, -0.05373191833496094, 0.019999980926513672]
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)
-            time.sleep(1.5)
+            angles = [0.0014920234680175781, 0.5147144794464111, 1.406636118888855, 0.09966802597045898, -2.046398162841797, -0.27761197090148926, 0.970980167388916, 0.012799978256225586, -0.30062198638916016, -0.059783935546875, -0.6641800403594971, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.30062198638916016, 0.042994022369384766, -0.6734678745269775, 2.112546443939209, -1.186300277709961, -0.06438612937927246, 1.6337518692016602, -0.02611994743347168, 1.8269520998001099, 0.5553500652313232, -0.05373191833496094, 0.019999980926513672]         
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
+            toSay = 'She could find no food at all.'
+            textToSpeech.say(toSay)
+            motionProxy.setAngles(names, resting, fractionMaxSpeed)
+            #trackFace()
+            
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+            
+            toSay = 'She looked everywhere, but there was no food, and she grew' 
+            textToSpeech.say(toSay)            
+            motionProxy.setStiffnesses("Body", 1.0) 
+            angles = [-0.007711887359619141, 0.14568805694580078, 1.0492141246795654, -0.3141592741012573, -1.42972993850708, -0.894279956817627, 0.21011614799499512, 0.20639997720718384, -0.28067994117736816, -0.056715965270996094, -0.6166260242462158, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.28067994117736816, 0.04146003723144531, -0.6305160522460938, 2.112546443939209, -1.186300277709961, -0.06898808479309082, 1.075376033782959, 0.3141592741012573, 1.5769100189208984, 0.754770040512085, -0.2654240131378174, 0.07599997520446777]         
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
+            toSay = 'very thin.'
+            textToSpeech.say(toSay)
             motionProxy.setAngles(names, resting, fractionMaxSpeed)
             
-            toSay = '\RSPD=70\ She looked everywhere, but there was no food, and she grew very thin. Finally, the mouse found a basket, full of food.' 
-            textToSpeech.say(toSay)            
-            motionProxy.setStiffnesses("Body", 1.0)           
-            angles  = [-0.0061779022216796875, 0.08432793617248535, -0.11355805397033691, 0.6457719802856445, -2.03719425201416, -1.0952341556549072, 1.004728078842163, 0.015200018882751465, -0.2791459560394287, -0.056715965270996094, -0.6181600093841553, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.2791459560394287, 0.027653932571411133, -0.6289820671081543, 2.112546443939209, -1.186300277709961, -0.05058002471923828, -0.052114009857177734, -0.8636841773986816, 1.8361561298370361, 1.0968518257141113, 0.21625208854675293, 0.020400047302246094]           
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)
-            time.sleep(1.5)
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+            
+            toSay = 'Finally, the mouse found a basket,'
+            textToSpeech.say(toSay)
+            motionProxy.setStiffnesses("Body", 1.0) 
+            angles = [-0.0061779022216796875, 0.08432793617248535, -0.11355805397033691, 0.6457719802856445, -2.03719425201416, -1.0952341556549072, 1.004728078842163, 0.015200018882751465, -0.2791459560394287, -0.056715965270996094, -0.6181600093841553, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.2791459560394287, 0.027653932571411133, -0.6289820671081543, 2.112546443939209, -1.186300277709961, -0.05058002471923828, -0.052114009857177734, -0.8636841773986816, 1.8361561298370361, 1.0968518257141113, 0.21625208854675293, 0.020400047302246094]                        
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)            
+            toSay = 'full of food.'
+            textToSpeech.say(toSay)
             motionProxy.setAngles(names, resting, fractionMaxSpeed)
-
-            toSay = '\RSPD=70\There was a small hole in the basket, and she went in. She could just get through the hole.'
+            
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+            
+            toSay = 'There was a small hole in the basket, and she went in. She could just get through the hole.'
             textToSpeech.say(toSay)
             motionProxy.setStiffnesses("Body", 1.0)           
             angles  = [-0.03072190284729004, 0.03063797950744629, 1.313062071800232, -0.21173405647277832, -0.6611959934234619, -1.2148860692977905, -0.30530786514282227, 0.012799978256225586, -0.29755401611328125, -0.056715965270996094, -0.6503739356994629, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.29755401611328125, 0.047595977783203125, -0.6596620082855225, 2.112546443939209, -1.186300277709961, -0.06898808479309082, 1.2165040969848633, -0.4449019432067871, 2.0856685638427734, 1.265592098236084, 0.15949392318725586, 0.020400047302246094]
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
             toSay = 'Then she began to eat the corn.'
-            time.sleep(1.5)
+            textToSpeech.say(toSay)
             motionProxy.setAngles(names, resting, fractionMaxSpeed)
             
-            toSay = 'Being very hungry, she ate a great deal, and went on eating and eating.'
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+            
+            toSay = 'Being very hungry, she ate a great deal'
             textToSpeech.say(toSay)
             motionProxy.setStiffnesses("Body", 1.0)           
+            angles = [-0.007711887359619141, 0.08125996589660645, 1.3851600885391235, 0.15642595291137695, -0.8038580417633057, -1.0461461544036865, 0.1257460117340088, 0.014799952507019043, -0.2469320297241211, -0.07512402534484863, -0.7025301456451416, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.2469320297241211, 0.07520794868469238, -0.7102839946746826, 2.112546443939209, -1.186300277709961, -0.07512402534484863, 0.4755818843841553, 0.2960200309753418, 0.6749181747436523, 1.5446163415908813, 1.0139319896697998, 0.0196000337600708]
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
+            toSay = 'and went on eating and eating.'
+            textToSpeech.say(toSay)
+            motionProxy.setAngles(names, resting, fractionMaxSpeed)
+            
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+            
+            toSay = 'She had grown very fat before she felt that'
+            textToSpeech.say(toSay)
+            motionProxy.setStiffnesses("Body", 1.0)
             angles  = [-0.029187917709350586, 0.03063797950744629, 1.061486005783081, 0.19477605819702148, -0.17798590660095215, -1.4618600606918335, -1.0109481811523438, 0.012799978256225586, -0.2990880012512207, -0.056715965270996094, -0.667248010635376, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.2990880012512207, 0.038392066955566406, -0.678070068359375, 2.112546443939209, -1.186300277709961, -0.06131792068481445, 1.3376898765563965, -0.18719005584716797, 0.5061781406402588, 1.4481382369995117, 0.8160459995269775, 0.020400047302246094]
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)
-            time.sleep(1.0)
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
+            toSay = 'she had had enough'
+            textToSpeech.say(toSay)
+            motionProxy.setAngles(names, resting, fractionMaxSpeed)
+
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+
+            toSay = 'When the mouse tried'
+            textToSpeech.say(toSay)
+            motionProxy.setStiffnesses("Body", 1.0) 
+            angles  = [-0.0583338737487793, -0.6719517707824707, -0.6596620082855225, 0.14722204208374023, -0.8912959098815918, -0.7669579982757568, 0.6196939945220947, 0.012799978256225586, -0.29755401611328125, -0.05364799499511719, -0.6718499660491943, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.29755401611328125, 0.03992605209350586, -0.6811380386352539, 2.112546443939209, -1.186300277709961, -0.06438612937927246, -1.1075060367584229, -0.056799888610839844, 1.3222661018371582, 0.9173741340637207, 0.19937801361083984, 0.020400047302246094]
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
+            toSay = 'to climb out of the basket, she could not.'
+            textToSpeech.say(toSay)
             motionProxy.setAngles(names, resting, fractionMaxSpeed)
             
-            toSay = 'She had grown very fat before she felt that she had had enough.... When the mouse tried to climb out of the basket, she could not.'
-            textToSpeech.say(toSay)
-            motionProxy.setStiffnesses("Body", 1.0)           
-            angles  = [-0.0583338737487793, -0.6719517707824707, -0.6596620082855225, 0.14722204208374023, -0.8912959098815918, -0.7669579982757568, 0.6196939945220947, 0.012799978256225586, -0.29755401611328125, -0.05364799499511719, -0.6718499660491943, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.29755401611328125, 0.03992605209350586, -0.6811380386352539, 2.112546443939209, -1.186300277709961, -0.06438612937927246, -1.1075060367584229, -0.056799888610839844, 1.3222661018371582, 0.9173741340637207, 0.19937801361083984, 0.020400047302246094]
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)
-            time.sleep(3.0)
-            motionProxy.setAngles(names, resting, fractionMaxSpeed)
+            #+++++++++++++++++++++++++++++++++++++++++++++++
             
             toSay = 'She was too fat to pass through the hole...' 
             textToSpeech.say(toSay)
             motionProxy.setStiffnesses("Body", 1.0)           
             angles  = [0.018366098403930664, -0.08594608306884766, -1.3376898765563965, 0.37578797340393066, -0.4326300621032715, -1.4005000591278076, -1.4757499694824219, 0.016000032424926758, -0.28374814987182617, -0.05824995040893555, -0.6733839511871338, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.28374814987182617, 0.047595977783203125, -0.6872739791870117, 2.112546443939209, -1.186300277709961, -0.06745409965515137, 1.211902141571045, -0.35132789611816406, 0.31136012077331543, 1.0569682121276855, 1.0937001705169678, 0.02480006217956543]
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
             toSay = 'How shall I climb out? ...said the mouse.'
             textToSpeech.say(toSay)
-            time.sleep(1.0)
             motionProxy.setAngles(names, resting, fractionMaxSpeed)
+
+            #+++++++++++++++++++++++++++++++++++++++++++++++
             
-            toSay = 'Just then, a rat came along, and he heard the mouse. Mouse,... said the rat, if you want to climb out of the basket,' 
-            textToSpeech.say(toSay)
-            
+            toSay = 'Just then, a rat came along, and he heard the mouse. Mouse,... said the rat' 
+            textToSpeech.say(toSay)            
             motionProxy.setStiffnesses("Body", 1.0)           
             angles  = [-0.007711887359619141, 0.14568805694580078, 1.0492141246795654, -0.3141592741012573, -1.42972993850708, -0.894279956817627, 0.21011614799499512, 0.20639997720718384, -0.28067994117736816, -0.056715965270996094, -0.6166260242462158, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.28067994117736816, 0.04146003723144531, -0.6305160522460938, 2.112546443939209, -1.186300277709961, -0.06898808479309082, 1.075376033782959, 0.3141592741012573, 1.5769100189208984, 0.754770040512085, -0.2654240131378174, 0.07599997520446777]
-            motionProxy.setAngles(names, angles, fractionMaxSpeed)            
-            toSay = 'you must wait till you have grown as thin as you were when you went\RSPD=100\ in!'
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)
+            toSay = 'if you want to climb out of the basket...'
             textToSpeech.say(toSay)
-            time.sleep(2.0)
+            motionProxy.setAngles(names, resting, fractionMaxSpeed)
+            
+            #+++++++++++++++++++++++++++++++++++++++++++++++
+
+            toSay = 'you must wait till you have grown'
+            textToSpeech.say(toSay)
+            motionProxy.setStiffnesses("Body", 1.0)
+            angles = [-0.007711887359619141, 0.14568805694580078, 1.0492141246795654, -0.3141592741012573, -1.42972993850708, -0.894279956817627, 0.21011614799499512, 0.20639997720718384, -0.28067994117736816, -0.056715965270996094, -0.6166260242462158, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.28067994117736816, 0.04146003723144531, -0.6305160522460938, 2.112546443939209, -1.186300277709961, -0.06898808479309082, 1.075376033782959, 0.3141592741012573, 1.5769100189208984, 0.754770040512085, -0.2654240131378174, 0.07599997520446777]         
+            motionProxy.post.setAngles(names, angles, fractionMaxSpeed)            
+            toSay = 'as thin as you were when you went\RSPD=100\ in!'
+            textToSpeech.say(toSay)
             motionProxy.setAngles(names, resting, fractionMaxSpeed)
         
         changeActivityReceived = " "

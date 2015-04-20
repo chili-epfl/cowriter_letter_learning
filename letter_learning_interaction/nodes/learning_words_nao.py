@@ -64,6 +64,7 @@ pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path, queue_size
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10)
 pub_nb_repetitions = rospy.Publisher(NB_REPETITIONS_TOPIC, Int16, queue_size=10)
 pub_current_demo = rospy.Publisher('current_demo', String, queue_size=10)
+pub_state_activity = rospy.Publisher('state_activity', String, queue_size=10)
 
 
 #get appropriate angles for looking at things
@@ -217,6 +218,7 @@ def onSetActiveShapeGesture(message):
 def respondToDemonstration(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION")
+    pub_state_activity.publish("RESPONDING_TO_DEMONSTRATION")
     demoShapesReceived = infoFromPrevState['demoShapesReceived']
 
     # update the shape models with the incoming demos
@@ -258,6 +260,7 @@ def respondToDemonstration(infoFromPrevState):
 def respondToDemonstrationWithFullWord(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION_FULL_WORD')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
+    pub_state_activity.publish("RESPONDING_TO_DEMONSTRATION_FULL_WORD")
     demoShapesReceived = infoFromPrevState['demoShapesReceived']
 
     letters = "".join([s.shapeType for s in demoShapesReceived])
@@ -315,6 +318,7 @@ def publishShape(infoFromPrevState):
 
     #print('------------------------------------------ PUBLISHING_LETTER')
     rospy.loginfo("STATE: PUBLISHING_LETTER")
+    pub_state_activity.publish("PUBLISHING_LETTER")
     shapesToPublish = infoFromPrevState['shapesToPublish']
     shape = shapesToPublish.pop(0) #publish next remaining shape (and remove from list)
 
@@ -351,7 +355,7 @@ def publishShape(infoFromPrevState):
 def publishWord(infoFromPrevState):
     #print('------------------------------------------ PUBLISHING_WORD')
     rospy.loginfo("STATE: PUBLISHING_WORD")
-
+    pub_state_activity.publish("PUBLISHING_WORD")
     shapedWord = textShaper.shapeWord(wordManager)
     placedWord = screenManager.place_word(shapedWord)
 
@@ -396,6 +400,7 @@ def waitForShapeToFinish(infoFromPrevState):
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_LETTER_TO_FINISH":
         #print('------------------------------------------ WAITING_FOR_LETTER_TO_FINISH')
         rospy.loginfo("STATE: WAITING_FOR_LETTER_TO_FINISH")
+        pub_state_activity.publish("WAITING_FOR_LETTER_TO_FINISH")
         infoToRestore_waitForShapeToFinish = infoFromPrevState
 
     infoForNextState = {'state_cameFrom': 'WAITING_FOR_LETTER_TO_FINISH'}
@@ -443,6 +448,7 @@ def waitForShapeToFinish(infoFromPrevState):
 def respondToNewWord(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_NEW_WORD')
     rospy.loginfo("STATE: RESPONDING_TO_NEW_WORD")
+    pub_state_activity.publish("RESPONDING_TO_NEW_WORD")
     global shapeFinished, wordManager #@TODO make class attribute 
     wordToLearn = infoFromPrevState['wordReceived']
     wordSeenBefore = wordManager.newCollection(wordToLearn)
@@ -508,6 +514,7 @@ def askForFeedback(infoFromPrevState):
     
     #print('------------------------------------------ ASKING_FOR_FEEDBACK')
     rospy.loginfo("STATE: ASKING_FOR_FEEDBACK")
+    pub_state_activity.publish("ASKING_FOR_FEEDBACK")
     centre = infoFromPrevState['centre']
     rospy.loginfo(infoFromPrevState['state_cameFrom'])
     
@@ -583,6 +590,7 @@ def askForFeedback(infoFromPrevState):
 def respondToTestCard(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_TEST_CARD')
     rospy.loginfo("STATE: RESPONDING_TO_TEST_CARD")
+    pub_state_activity.publish("RESPONDING_TO_TEST_CARD")
     if naoSpeaking:
         textToSpeech.say(testPhrase)
         rospy.loginfo("NAO: "+testPhrase)
@@ -594,6 +602,7 @@ def respondToTestCard(infoFromPrevState):
 def stopInteraction(infoFromPrevState):
     #print('------------------------------------------ STOPPING')
     rospy.loginfo("STATE: STOPPING")
+    pub_state_activity.publish("STOPPING")
     #if naoSpeaking:
     #    textToSpeech.say(thankYouPhrase)
     if naoConnected:
@@ -606,6 +615,8 @@ def stopInteraction(infoFromPrevState):
 
 def pauseInteraction(infoFromPrevState):
     global changeActivityReceived
+    rospy.loginfo("STATE: PAUSE")
+    pub_state_activity.publish("PAUSE")
     if changeActivityReceived == 'learning_words_nao':
         if naoSpeaking:
             if(alternateSidesLookingAt): 
@@ -632,6 +643,7 @@ def startInteraction(infoFromPrevState):
     if infoFromPrevState['state_cameFrom'] != "STARTING_INTERACTION":
         #print('------------------------------------------ WAITING_FOR_WORD')
         rospy.loginfo("STATE: STARTING_INTERACTION")
+        pub_state_activity.publish("STARTING_INTERACTION")
         
     if changeActivityReceived == 'learning_words_nao':
         if naoSpeaking:
@@ -657,6 +669,7 @@ def waitForWord(infoFromPrevState):
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_WORD":
         #print('------------------------------------------ WAITING_FOR_WORD')
         rospy.loginfo("STATE: WAITING_FOR_WORD")
+        pub_state_activity.publish("WAITING_FOR_WORD")
         pub_camera_status.publish(True) #turn camera on
     if infoFromPrevState['state_cameFrom'] == "STARTING_INTERACTION":
         pass
@@ -692,6 +705,7 @@ def waitForFeedback(infoFromPrevState):
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_FEEDBACK":
         #print('------------------------------------------ WAITING_FOR_FEEDBACK')
         rospy.loginfo("STATE: WAITING_FOR_FEEDBACK")
+        pub_state_activity.publish("WAITING_FOR_FEEDBACK")
         pub_camera_status.publish(True) #turn camera on
 
     infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"}
@@ -769,7 +783,8 @@ def waitForRobotToConnect(infoFromPrevState):
     #FORWARDER STATE
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_ROBOT_TO_CONNECT":
         #print('------------------------------------------ waiting_for_robot_to_connect')
-        rospy.loginfo("STATE: waiting_for_robot_to_connect")
+        rospy.loginfo("STATE: WAITING_FOR_ROBOT_TO_CONNECT")
+        pub_state_activity.publish("WAITING_FOR_ROBOT_TO_CONNECT")
         infoToRestore_waitForRobotToConnect = infoFromPrevState
 
     nextState = "WAITING_FOR_ROBOT_TO_CONNECT"
@@ -793,7 +808,8 @@ def waitForTabletToConnect(infoFromPrevState):
     #FORWARDER STATE
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_TABLET_TO_CONNECT":
         #print('------------------------------------------ waiting_for_tablet_to_connect')
-        rospy.loginfo("STATE: waiting_for_tablet_to_connect")
+        rospy.loginfo("STATE: WAITING_FOR_TABLET_TO_CONNECT")
+        pub_state_activity.publish("WAITING_FOR_TABLET_TO_CONNECT")
         infoToRestore_waitForTabletToConnect = infoFromPrevState
 
     nextState = "WAITING_FOR_TABLET_TO_CONNECT"

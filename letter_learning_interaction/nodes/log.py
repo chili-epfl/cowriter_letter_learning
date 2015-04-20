@@ -39,8 +39,8 @@ class log():
         rospy.Subscriber("new_child", String, self.child_callback)              # New child in da house
         rospy.Subscriber("current_demo", String, self.correctness_callback)     # Path of the demo
         
-        
-        with open('log.csv', 'a') as csvfile:
+        self.filePath = '/home/ferran/.ros/visionLog/log.csv'
+        with open(self.filePath, 'a') as csvfile:
             intro = "********************************NEW SESSION********************************"
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow(intro)
@@ -53,26 +53,26 @@ class log():
         rospy.spin()
 
     def look_robot_callback(self, data):
-        timestamp = getTime()
+        timestamp = self.getTime()
         lookAt = "look: " + data.data   
                 
-        with open('log.csv', 'a') as csvfile:
+        with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, lookAt])
         
     def smile_robot_callback(self, data):
-        timestamp = getTime()
+        timestamp = self.getTime()
         smile = "child smiles"   
                 
-        with open('log.csv', 'a') as csvfile:
+        with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, smile])
         
     def movement_callback(self, data):
-        timestamp = getTime()
+        timestamp = self.getTime()
         movement = "movement: " + str(data.data)
                 
-        with open('log.csv', 'a') as csvfile:
+        with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, movement])
         
@@ -85,10 +85,10 @@ class log():
 #            wr.writerow([timestamp, proximity])
     
     def novelty_callback(self, data):
-        timestamp = getTime()
+        timestamp = self.getTime()
         novelty = "novelty: " + str(data.data)
                 
-        with open('log.csv', 'a') as csvfile:
+        with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, novelty])
     
@@ -114,9 +114,9 @@ class log():
 
     
     def activity_callback(self, data):
-        timestamp = getTime()
+        timestamp = self.getTime()
         activity = "activity:" + data.data
-        with open('log.csv', 'a') as csvfile:
+        with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, activity])
         
@@ -127,10 +127,10 @@ class log():
 
     def child_callback(self, data):
         global child_counter
-        timestamp = getTime()
+        timestamp = self.getTime()
         child = "child:" + str(child_counter)
         child_counter = child_counter + 1
-        with open('log.csv', 'a') as csvfile:
+        with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, child])
 
@@ -139,23 +139,23 @@ class log():
     def correctness_callback(self, data):
         global path
         path = data.data
-        addRep()
+        self.addRep()
         
 
-def addRep():
-    global word
-    global timeWriting
-    global timeResponse
-    global path
-    global repetition
-    timestamp = getTime()
-    with open('log.csv', 'a') as csvfile:
-        wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
-        wr.writerow([timestamp, word, repetition, timeResponse, timeWriting, path])       
+    def addRep(self):
+        global word
+        global timeWriting
+        global timeResponse
+        global path
+        global repetition
+        timestamp = self.getTime()
+        with open(self.filePath, 'a') as csvfile:
+            wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
+            wr.writerow([timestamp, word, repetition, timeResponse, timeWriting, path])       
         
-def getTime():
-    ts = time.time()
-    return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    def getTime(self):
+        ts = time.time()
+        return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     
     
 def main():
