@@ -17,8 +17,8 @@ from naoqi import ALProxy
 
 rospy.init_node("joke_nao")
 
-motion = ALProxy("ALMotion", "192.168.1.12", 9559)
-tracker = ALProxy("ALTracker", "192.168.1.12", 9559)
+motion = ALProxy("ALMotion", NAO_IP, 9559)
+tracker = ALProxy("ALTracker", NAO_IP, 9559)
     
 # HACK: should properly configure the path from an option
 configure_logging()
@@ -47,19 +47,21 @@ def onChangeActivity(message):
     global changeActivityReceived
     changeActivityReceived = message.data
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-def startInteraction(infoFromPrevState):
-    global nextSideToLookAt
-    global changeActivityReceived
-    
-    # Add target to track.
+def trackFace():
+    global motion
+    global tracker
     targetName = "Face"
     faceWidth = 0.1
     tracker.registerTarget(targetName, faceWidth)
     # Then, start tracker.
     motion.setStiffnesses("Head", 1.0)
     tracker.track(targetName)
+    
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+def startInteraction(infoFromPrevState):
+    global nextSideToLookAt
+    global changeActivityReceived
     
     if infoFromPrevState['state_cameFrom'] != "STARTING_INTERACTION":
         #print('------------------------------------------ WAITING_FOR_WORD')
@@ -115,8 +117,19 @@ def tellJoke(infoFromPrevState):
         rospy.sleep(0.5)
     else:
         if naoSpeaking:
+            trackFace()
             toSay = '\RSPD=70\A husband and his wife are trying to set up a new password for their new computer. The husband puts, My penis. And the wife falls on the ground laughing because on the screen it says, Error. Not long\RSPD=100\ enough.'
             textToSpeech.say(toSay)
+            
+            # Stop tracker.
+            tracker.stopTracker()
+            tracker.unregisterAllTargets()
+            
+            # Switch to learning words
+            msg = String()
+            msg.data = "learning_words_nao"
+            pub_activity.publish(msg)
+            
         nextState = "PAUSE_INTERACTION"
         changeActivityReceived = "  "
         infoForNextState = {'state_cameFrom': "TELL_JOKE"}

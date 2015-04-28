@@ -124,7 +124,7 @@
     </node>
 
     <!-- Start the joke activity -->
-    <node pkg="letter_learning_interaction" type="joke_nao.py" name="joke_nao" output="screen">
+    <node pkg="letter_learning_interaction" type="joke_nao.py" name="joke_nao">
         <param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
         <param name="shape_log" type="str" value="$(arg shape_log)" />
         <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" /> 

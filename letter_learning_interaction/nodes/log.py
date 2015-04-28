@@ -39,16 +39,18 @@ class log():
         rospy.Subscriber("new_child", String, self.child_callback)              # New child in da house
         rospy.Subscriber("current_demo", String, self.correctness_callback)     # Path of the demo
         
-        self.filePath = '/home/ferran/.ros/visionLog/log.csv'
-        with open(self.filePath, 'a') as csvfile:
-            intro = "********************************NEW SESSION********************************"
-            wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
+        
+        date_time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+        self.filePath = '/home/ferran/.ros/visionLog/' + date_time + '.csv'
+        
+        with open(self.filePath, 'wb') as csvfile:
+            intro = '********************************NEW SESSION********************************'
+            wr = csv.writer(csvfile, delimiter='-', quoting=csv.QUOTE_NONE, quotechar='')
             wr.writerow(intro)
+        
         # Initialize the node and name it.       
         rospy.init_node('log', anonymous = True)
-        # Go to the main loop.
-                
-            
+                            
         # Simply keeps python from exiting until this node is stopped
         rospy.spin()
 
@@ -122,7 +124,7 @@ class log():
         
     def word_callback(self, data):
         global word
-        word = "word:" + data.data
+        word = "word: " + data.data
     
 
     def child_callback(self, data):
@@ -130,9 +132,15 @@ class log():
         timestamp = self.getTime()
         child = "child:" + str(child_counter)
         child_counter = child_counter + 1
-        with open(self.filePath, 'a') as csvfile:
-            wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
-            wr.writerow([timestamp, child])
+        
+        date_time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+        self.filePath = '/home/ferran/.ros/visionLog/' + date_time + '.csv'
+        
+        with open(self.filePath, 'wb') as csvfile:
+            intro = "********************************NEW SESSION********************************"
+            wr = csv.writer(csvfile, delimiter='-', quoting=csv.QUOTE_NONE, quotechar='')
+            wr.writerow(intro)
+            #wr.writerow([timestamp, child])
 
                
     # TODO: Manage with the cluster distance     
@@ -155,7 +163,7 @@ class log():
         
     def getTime(self):
         ts = time.time()
-        return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S:%f')
     
     
 def main():

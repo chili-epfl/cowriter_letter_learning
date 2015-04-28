@@ -48,7 +48,7 @@ class InteractionSettings():
         headAngles_lookAtTablet_down = [-0.01538, 0.512]
         headAngles_lookAtTablet_right = [-0.2, 0.08125996589660645]
         headAngles_lookAtTablet_left = [0.2, 0.08125996589660645]
-        headAngles_lookAtPerson_front = [-0.0123, 0.1825]
+        headAngles_lookAtPerson_front = [-0.0123, -0.05]
         headAngles_lookAtPerson_right = [-0.9639739513397217, 0.08125996589660645]
         headAngles_lookAtPerson_left = [0.9639739513397217, 0.08125996589660645]
         return  headAngles_lookAtTablet_down,headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front ,headAngles_lookAtPerson_right, headAngles_lookAtPerson_left
@@ -59,21 +59,21 @@ class InteractionSettings():
         if(language.lower()=='english'):
             introPhrase = "Hello. I'm Nao."
             testPhrase = "Ok, test time. I'll try my best."
-            thankYouPhrase = 'Thank you for your help.'
-            introLearningWordsPhrase = "Show me a word to practice."
-            introDrawingPhrase = 'Yes!, I want to draw.'
+            thankYouPhrase = 'I was a good training! Thank you... I hope I will see you again'
+            introLearningWordsPhrase = "I want to practice my writing... Can you help me?"
+            introDrawingPhrase = 'I feel tired... I will tell you a story.'
             
             againLearningWordsPhrase = 'I would like to play with the words again...'
-            againDrawingPhrase = 'What about drawing again? I love it'
-            introJokePhrase = 'Do you want to hear a joke?'
+            againDrawingPhrase = 'I know another good story. I will tell you...'
+            introJokePhrase = 'All right... Can you also show me how to write?'
             againJokePhrase = 'I will tell you the joke again.'
             
             #The following phrases may have an optional string formatted into them
             demo_response_phrases = ["Okay, I'll try it like you", "So that's how you write %s", "That's a much better %s than mine", "I'll try to copy you","Let me try now","Thank you"]
             asking_phrases_after_feedback = ["Any better?", "How about now?", "Now what do you think?","Is there a difference?", "Is this one okay?", "Will you show me how?", "Did I improve?"]
             asking_phrases_after_word = ["Okay, what do you think?", "This is a hard word", "Is this how you write it?","Please help me"]
-            word_response_phrases = ["%s, okay. ", "%s seems like a good word", "Hopefully I can do well with this word", "%s. Let's try", "Okay, %s now"]
-            word_again_response_phrases = ["%s again, okay.", "I thought I already did %s", "You like to practice this word"]
+            word_response_phrases = ["Let's try the word %s", "%s seems like a good word to write", "Hopefully I can do well with this word", "Okay, %s now"]
+            word_again_response_phrases = ["Let's try %s again.", "I like to practice this word"]
             
         elif(language.lower()=='french'):
             introPhrase = "Allez, on écrit des mots"

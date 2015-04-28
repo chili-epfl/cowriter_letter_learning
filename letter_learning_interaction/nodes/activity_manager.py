@@ -16,9 +16,7 @@ rospy.init_node("activity_manager")
 configure_logging()
 
 # -- interaction config parameters come from launch file
-
 STOP_TOPIC = rospy.get_param('~stop_request_topic','stop_learning');#Listen for when stop card has been shown to the robot
-SHAPE_LOGGING_PATH = rospy.get_param('~shape_log','') # path to a log file where all learning steps will be stored
 
 #get appropriate angles for looking at things
 headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
@@ -53,8 +51,12 @@ def startInteraction(infoFromPrevState):
     if naoSpeaking:
         if(alternateSidesLookingAt): 
             lookAndAskForFeedback(introPhrase,nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
+            pub_activity.publish("learning_words_nao")
+            rospy.sleep(1) 
         else:
             lookAndAskForFeedback(introPhrase,personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
+            rospy.sleep(1)            
+            pub_activity.publish("learning_words_nao")
 
     nextState = "ACTIVITY"
     infoForNextState = {'state_cameFrom': "STARTING_INTERACTION"}

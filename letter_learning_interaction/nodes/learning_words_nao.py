@@ -26,9 +26,9 @@ from copy import deepcopy
 
 from naoqi import ALProxy
 
-motion = ALProxy("ALMotion", "192.168.1.12", 9559)
-tracker = ALProxy("ALTracker", "192.168.1.12", 9559)
-
+motion = ALProxy("ALMotion", NAO_IP, 9559)
+tracker = ALProxy("ALTracker", NAO_IP, 9559)
+ 
 rospy.init_node("learning_words_nao")
 
 # HACK: should properly configure the path from an option
@@ -184,7 +184,18 @@ def onNewChildReceived(message):
     global nextSideToLookAt
     if naoWriting:
         if naoStanding:
-            postureProxy.goToPosture("StandInit", 0.3)
+            #postureProxy.goToPosture("StandInit", 0.3)
+            # Stop tracker.
+            tracker.stopTracker()
+            tracker.unregisterAllTargets()
+            motionProxy.setStiffnesses("Head" , 1)
+            motion_keys = [0.8, 0.0, 0.0]
+            motionProxy.post.angleInterpolation("Head", motion_keys, [0.5, 2, 4], True)
+            # Stop tracker.
+            tracker.stopTracker()
+            tracker.unregisterAllTargets()
+            rospy.sleep(1)
+            
         else:
             motionProxy.rest()
             motionProxy.setStiffnesses(["Head", "LArm", "RArm"], 0.5)
@@ -192,9 +203,9 @@ def onNewChildReceived(message):
 
     if naoSpeaking:
         if alternateSidesLookingAt:
-            lookAndAskForFeedback(introPhrase, nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
+            lookAndAskForFeedback(introJokePhrase, nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
         else:
-            lookAndAskForFeedback(introPhrase, personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
+            lookAndAskForFeedback(introJokePhrase, personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
     #clear screen
     pub_clear.publish(Empty())
     rospy.sleep(0.5)
@@ -213,6 +224,16 @@ def onSetActiveShapeGesture(message):
     #if activeLetter:
     #    pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=True))
 
+def trackFace():
+    global motion
+    global tracker
+    targetName = "Face"
+    faceWidth = 0.1
+    tracker.registerTarget(targetName, faceWidth)
+    # Then, start tracker.
+    motion.setStiffnesses("Head", 1.0)
+    tracker.track(targetName)
+    
 # ------------------------------- METHODS FOR DIFFERENT STATES IN STATE MACHINE
 
 def respondToDemonstration(infoFromPrevState):
@@ -262,6 +283,10 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
     pub_state_activity.publish("RESPONDING_TO_DEMONSTRATION_FULL_WORD")
     demoShapesReceived = infoFromPrevState['demoShapesReceived']
+    
+    # Stop tracker.
+    tracker.stopTracker()
+    tracker.unregisterAllTargets()
 
     letters = "".join([s.shapeType for s in demoShapesReceived])
     
@@ -296,6 +321,8 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
 
     # 2- display the update word
 
+    lookAtTablet(motionProxy, effector)
+    
     #clear screen
     screenManager.clear()
     pub_clear.publish(Empty())
@@ -446,12 +473,20 @@ def waitForShapeToFinish(infoFromPrevState):
     return nextState, infoForNextState
 
 def respondToNewWord(infoFromPrevState):
+    global tracker
     #print('------------------------------------------ RESPONDING_TO_NEW_WORD')
     rospy.loginfo("STATE: RESPONDING_TO_NEW_WORD")
     pub_state_activity.publish("RESPONDING_TO_NEW_WORD")
     global shapeFinished, wordManager #@TODO make class attribute 
     wordToLearn = infoFromPrevState['wordReceived']
     wordSeenBefore = wordManager.newCollection(wordToLearn)
+    
+    
+    # Stop tracker.
+    tracker.stopTracker()
+    tracker.unregisterAllTargets()
+    pub_state_activity.publish("Track off")
+    
     if naoSpeaking:
         if wordSeenBefore:
             global word_again_response_phrases_counter
@@ -476,8 +511,6 @@ def respondToNewWord(infoFromPrevState):
         rospy.loginfo('NAO: '+toSay)
         textToSpeech.say(toSay)  
     
-    tracker.stopTracker()
-    tracker.unregisterAllTargets()
     lookAtTablet(motionProxy, effector)
     
     #clear screen
@@ -516,7 +549,7 @@ def askForFeedback(infoFromPrevState):
     rospy.loginfo("STATE: ASKING_FOR_FEEDBACK")
     pub_state_activity.publish("ASKING_FOR_FEEDBACK")
     centre = infoFromPrevState['centre']
-    rospy.loginfo(infoFromPrevState['state_cameFrom'])
+    rospy.loginfo(infoFromPrevState['state_cameFrom'])      
     
     # Publish the number of repetitions of the same word
     nb_repetitions = nb_repetitions + 1
@@ -537,7 +570,7 @@ def askForFeedback(infoFromPrevState):
             if asking_phrases_after_word_counter==len(asking_phrases_after_word):
                 asking_phrases_after_word_counter = 0
 
-            if(alternateSidesLookingAt):  
+            if(alternateSidesLookingAt):
                 lookAndAskForFeedback(toSay, nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
                 if nextSideToLookAt == 'Left':
                     nextSideToLookAt = 'Right'
@@ -560,7 +593,7 @@ def askForFeedback(infoFromPrevState):
             if asking_phrases_after_feedback_counter==len(asking_phrases_after_feedback):
                 asking_phrases_after_feedback_counter = 0
 
-            if(alternateSidesLookingAt):  
+            if(alternateSidesLookingAt):
                 lookAndAskForFeedback(toSay,nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
                 if nextSideToLookAt == 'Left':
                     nextSideToLookAt = 'Right'
@@ -606,6 +639,9 @@ def stopInteraction(infoFromPrevState):
     #if naoSpeaking:
     #    textToSpeech.say(thankYouPhrase)
     if naoConnected:
+        # Stop tracker.
+        tracker.stopTracker()
+        tracker.unregisterAllTargets()
         motionProxy.wbEnableEffectorControl(effector,False)
         motionProxy.rest()
     nextState = "EXIT"
@@ -618,8 +654,10 @@ def pauseInteraction(infoFromPrevState):
     rospy.loginfo("STATE: PAUSE")
     pub_state_activity.publish("PAUSE")
     if changeActivityReceived == 'learning_words_nao':
+        
+        trackFace()
         if naoSpeaking:
-            if(alternateSidesLookingAt): 
+            if(alternateSidesLookingAt):
                 lookAndAskForFeedback(againLearningWordsPhrase, nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
                 rospy.sleep(1)
                 lookAndAskForFeedback(introLearningWordsPhrase, personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
@@ -640,14 +678,18 @@ def pauseInteraction(infoFromPrevState):
 def startInteraction(infoFromPrevState):
     global nextSideToLookAt
     global changeActivityReceived
+    
     if infoFromPrevState['state_cameFrom'] != "STARTING_INTERACTION":
         #print('------------------------------------------ WAITING_FOR_WORD')
         rospy.loginfo("STATE: STARTING_INTERACTION")
         pub_state_activity.publish("STARTING_INTERACTION")
         
     if changeActivityReceived == 'learning_words_nao':
+        # Then, start tracker.
+        trackFace()
+    
         if naoSpeaking:
-            if(alternateSidesLookingAt): 
+            if(alternateSidesLookingAt):
                 lookAndAskForFeedback(introLearningWordsPhrase, nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
             else:
                 lookAndAskForFeedback(introLearningWordsPhrase, personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)            
@@ -692,16 +734,11 @@ def waitForWord(infoFromPrevState):
 
 def waitForFeedback(infoFromPrevState):
     global changeActivityReceived
-    global motion
-    global tracker
-    targetName = "Face"
-    faceWidth = 0.1
-    tracker.registerTarget(targetName, faceWidth)
-
-    # Then, start tracker.
-    motion.setStiffnesses("Head", 1.0)
-    tracker.track(targetName)
     
+    # Then, start tracker.
+    pub_camera_status.publish(True) #turn camera on
+    trackFace()
+        
     if infoFromPrevState['state_cameFrom'] != "WAITING_FOR_FEEDBACK":
         #print('------------------------------------------ WAITING_FOR_FEEDBACK')
         rospy.loginfo("STATE: WAITING_FOR_FEEDBACK")
@@ -713,14 +750,12 @@ def waitForFeedback(infoFromPrevState):
 
     global feedbackReceived    
     if feedbackReceived is not None:
+                
         infoForNextState['feedbackReceived'] = feedbackReceived
         feedbackReceived = None
         nextState = "RESPONDING_TO_FEEDBACK"
         infoForNextState['state_goTo'] = [nextState]
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
-        # Stop tracker.
-        tracker.stopTracker()
-        tracker.unregisterAllTargets()
 
     global demoShapesReceived    
     if demoShapesReceived:
@@ -729,9 +764,6 @@ def waitForFeedback(infoFromPrevState):
         nextState = "RESPONDING_TO_DEMONSTRATION_FULL_WORD"   
         infoForNextState['state_goTo'] = [nextState] #ensure robot is connected before going to that state
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
-                # Stop tracker.
-        tracker.stopTracker()
-        tracker.unregisterAllTargets()
 
     global wordReceived
     if wordReceived is not None:
@@ -740,9 +772,6 @@ def waitForFeedback(infoFromPrevState):
         nextState = "RESPONDING_TO_NEW_WORD"
         infoForNextState['state_goTo'] = [nextState] #ensure robot is connected before going to that state
         nextState = 'WAITING_FOR_ROBOT_TO_CONNECT'
-                # Stop tracker.
-        tracker.stopTracker()
-        tracker.unregisterAllTargets()
 
     global testRequestReceived
     if testRequestReceived:
@@ -757,9 +786,6 @@ def waitForFeedback(infoFromPrevState):
     if changeActivityReceived != 'learning_words_nao':
         nextState = "PAUSE_INTERACTION"
         infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"}
-                # Stop tracker.
-        tracker.stopTracker()
-        tracker.unregisterAllTargets()
         
         #clear screen
         screenManager.clear()
@@ -769,11 +795,12 @@ def waitForFeedback(infoFromPrevState):
     if nextState != 'WAITING_FOR_FEEDBACK':
         pub_camera_status.publish(False) #turn camera off
 
-    if nextState is None:
+    if nextState is None:        
         #default behaviour is to loop
         rospy.sleep(0.1) #don't check again immediately
         nextState = "WAITING_FOR_FEEDBACK"
         infoForNextState = {'state_cameFrom': "WAITING_FOR_FEEDBACK"}
+        
     return nextState, infoForNextState    
     
 
