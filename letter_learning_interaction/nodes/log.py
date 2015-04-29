@@ -17,6 +17,7 @@ timeWriting = ""
 timeResponse = ""
 path = ""
 repetition = ""
+learn = ""
 
 child_counter = 1
     
@@ -38,6 +39,7 @@ class log():
         rospy.Subscriber("words_to_write", String, self.word_callback)          # Word to be written
         rospy.Subscriber("new_child", String, self.child_callback)              # New child in da house
         rospy.Subscriber("current_demo", String, self.correctness_callback)     # Path of the demo
+        rospy.Subscriber("current_learn", String, self.learn_word_callback)     # Path of the learn
         
         
         date_time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
@@ -165,7 +167,16 @@ class log():
         ts = time.time()
         return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S:%f')
     
-    
+    def learn_word_callback(self, data):
+        global learn
+        global word
+        learn = data.data
+        timestamp = self.getTime()
+        with open(self.filePath, 'a') as csvfile:
+            wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
+            wr.writerow([timestamp, word, learn])  
+        
+        
 def main():
     
     log()

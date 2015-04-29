@@ -64,6 +64,7 @@ pub_traj_downsampled = rospy.Publisher(SHAPE_TOPIC_DOWNSAMPLED, Path, queue_size
 pub_clear = rospy.Publisher(CLEAR_SURFACE_TOPIC, Empty, queue_size=10)
 pub_nb_repetitions = rospy.Publisher(NB_REPETITIONS_TOPIC, Int16, queue_size=10)
 pub_current_demo = rospy.Publisher('current_demo', String, queue_size=10)
+pub_current_learn = rospy.Publisher('current_learn', String, queue_size=10)
 pub_state_activity = rospy.Publisher('state_activity', String, queue_size=10)
 
 
@@ -318,6 +319,11 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         msg = String()
         msg.data = demo        
         pub_current_demo.publish(msg)
+        
+        learn = wordManager.currentLearn
+        msg = String()
+        msg.data = learn        
+        pub_current_learn.publish(msg)
 
     # 2- display the update word
 
@@ -867,7 +873,7 @@ if __name__ == "__main__":
         import inspect
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]
-        datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/uji_pen_chars2'
+        datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/bad_letters'
 
     stateMachine = StateMachine()
     stateMachine.add_state("STARTING_INTERACTION", startInteraction)

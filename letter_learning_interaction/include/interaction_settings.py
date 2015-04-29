@@ -61,7 +61,7 @@ class InteractionSettings():
             testPhrase = "Ok, test time. I'll try my best."
             thankYouPhrase = 'I was a good training! Thank you... I hope I will see you again'
             introLearningWordsPhrase = "I want to practice my writing... Can you help me?"
-            introDrawingPhrase = 'I feel tired... I will tell you a story.'
+            introDrawingPhrase = 'I feel tired... I would like to practice my french... Can I tell you a story in french.'
             
             againLearningWordsPhrase = 'I would like to play with the words again...'
             againDrawingPhrase = 'I know another good story. I will tell you...'
