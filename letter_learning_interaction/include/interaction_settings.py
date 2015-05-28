@@ -100,7 +100,7 @@ class InteractionSettings():
             
         else:
             RuntimeError('Requested language ('+ language + ') not supported')
-        return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase
+        return introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase, refusing_response_phrases, wrong_way_response_phrases
         
     @staticmethod
     def setDatasetDirectory(datasetDirectory_):
