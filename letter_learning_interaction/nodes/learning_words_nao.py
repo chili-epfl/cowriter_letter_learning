@@ -71,7 +71,7 @@ pub_state_activity = rospy.Publisher('state_activity', String, queue_size=10)
 #get appropriate angles for looking at things
 headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
 #initialise arrays of phrases to say at relevant times
-introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase = InteractionSettings.getPhrases(LANGUAGE)
+introPhrase, demo_response_phrases, asking_phrases_after_feedback, asking_phrases_after_word, word_response_phrases, word_again_response_phrases, testPhrase, thankYouPhrase, introLearningWordsPhrase, introDrawingPhrase, againLearningWordsPhrase, againDrawingPhrase, introJokePhrase, againJokePhrase, refusing_response_phrases, wrong_way_response_phrases = InteractionSettings.getPhrases(LANGUAGE)
 #trajectory publishing parameters
 t0, dt, delayBeforeExecuting = InteractionSettings.getTrajectoryTimings(naoWriting)
 
@@ -247,20 +247,9 @@ def respondToDemonstration(infoFromPrevState):
     new_shapes = []
 
     letters = "".join([s.shapeType for s in demoShapesReceived])
+
+    acceptance = 1
     
-    if naoSpeaking:
-        global demo_response_phrases_counter
-        try:
-            toSay = demo_response_phrases[demo_response_phrases_counter] % letters
-        except TypeError: #string wasn't meant to be formatted
-            toSay = demo_response_phrases[demo_response_phrases_counter]
-        demo_response_phrases_counter += 1
-        if demo_response_phrases_counter==len(demo_response_phrases):
-            demo_response_phrases_counter = 0
-        textToSpeech.say(toSay)
-        rospy.loginfo('NAO: '+toSay)
-
-
     for shape in demoShapesReceived:
         glyph = shape.path
         shapeName = shape.shapeType
@@ -270,9 +259,47 @@ def respondToDemonstration(infoFromPrevState):
 
         rospy.loginfo("Received demo for " + shapeName)
         shapeIndex = wordManager.currentCollection.index(shapeName)
-        shape = wordManager.respondToDemonstration(shapeIndex, glyph)
+        if shapeName in ['0','6','8']:
+            shape,response = wordManager.respondToGoodDemonstration_modulo_shape(shapeIndex, glyph)
+            if not response:
+                acceptance = 2
+        else:
+            shape,response = wordManager.respondToGoodDemonstration(shapeIndex, glyph)
+            if response==0:
+                acceptance = 2
+            if response==1:
+                acceptance = 3
 
         new_shapes.append(shape)
+
+    if naoSpeaking:
+        global demo_response_phrases_counter
+        global refusing_response_phrases_counter
+        global wrong_way_response_phrases_counter
+
+        if acceptance==1:
+            try:
+                toSay = demo_response_phrases[demo_response_phrases_counter] % letters
+            except TypeError: #string wasn't meant to be formatted
+                toSay = demo_response_phrases[demo_response_phrases_counter]
+            demo_response_phrases_counter += 1
+            if demo_response_phrases_counter==len(demo_response_phrases):
+                demo_response_phrases_counter = 0
+
+        if acceptance==2:
+            toSay = refusing_response_phrases[refusing_response_phrases_counter]
+            refusing_response_phrases_counter += 1
+            if refusing_response_phrases_counter==len(refusing_response_phrases):
+                refusing_response_phrases_counter = 0
+
+        if acceptance==3:
+            toSay = wrong_way_response_phrases[wrong_way_response_phrases_counter]
+            wrong_way_response_phrases_counter += 1
+            if wrong_way_response_phrases_counter==len(wrong_way_response_phrases):
+                wrong_way_response_phrases_counter = 0
+
+        textToSpeech.say(toSay)
+        rospy.loginfo('NAO: '+toSay)
 
     state_goTo = deepcopy(drawingLetterSubstates)
     nextState = state_goTo.pop(0)

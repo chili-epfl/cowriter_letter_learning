@@ -69,6 +69,8 @@ class InteractionSettings():
             againJokePhrase = 'I will tell you the joke again.'
             
             #The following phrases may have an optional string formatted into them
+            refusing_response_phrases = ["oh, I think this is not the good shape, can you try it more like this ?", "I'm not sure to understand, can you teach me this shape ?", "I don't recognize this shape, can you do it more like this ?"]
+            wrong_way_response_phrases = ["I think you do it in the wrong way, can you try it in the same order than me ? I would like to learn that way, look..." , "Oh, this is not the way I want to learn... Can you show me how to do it in that way ? look !"]
             demo_response_phrases = ["Okay, I'll try it like you", "So that's how you write %s", "That's a much better %s than mine", "I'll try to copy you","Let me try now","Thank you"]
             asking_phrases_after_feedback = ["Any better?", "How about now?", "Now what do you think?","Is there a difference?", "Is this one okay?", "Will you show me how?", "Did I improve?"]
             asking_phrases_after_word = ["Okay, what do you think?", "This is a hard word", "Is this how you write it?","Please help me"]
@@ -88,6 +90,8 @@ class InteractionSettings():
             againJokePhrase = 'I will tell you the joke again.'
             
             #The following phrases may have an optional string formatted into them
+            refusing_response_phrases = ["Oh, je pense que ce n'est pas la forme que je voudrais apprendre... peux-tu essayer un peu plus comme ça ?", "Je ne suis pas sur de comprendre, peux tu m'enseigner cette forme-la ?", "Je ne reconnais pas cette forme, peux-tu essayer de m'enseigner comment on fait cette forme ? regarde !"]
+            wrong_way_response_phrases = ["Je crois que tu l'as fait dans le mauvais sens, peux-tu essayer dans le meme sens que moi ? c'est comme ça que je voudrais apprendre, regarde !", "Oh, ce n'est pas le sens que je voudrais apprendre... Peux tu me montrer comment on fait pour ce sens la, regarde !"]
             demo_response_phrases = ["Ok", "D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Bon", "Ce %s est pas mal", "Bon, j'essaye comme toi", "D'accord", "Ok, à moi", "À mon tour", "Ok", "Merci, je vais essayer"]
             asking_phrases_after_feedback = ["C'est mieux ?", "Voilà", "Et comme ça ?", "Tu en penses quoi ?", "Alors ?", "Qu'est-ce que tu en penses ?", "Il y a une différence ?", "Ça va cette fois ?", "Je me suis amélioré ?", "Tu trouves que c'est mieux ?"]
             asking_phrases_after_word = ["Bon, qu'est ce que tu en penses ?", "Pas facile !", "Voilà", "C'est bien comme ça ?", "Bon", "Je crois que j'ai besoin d'aide.", "Et voilà !"]
