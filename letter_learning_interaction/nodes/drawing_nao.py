@@ -15,6 +15,7 @@ from naoqi import ALProxy
 
 motion = ALProxy("ALMotion", NAO_IP, 9559)
 tracker = ALProxy("ALTracker", NAO_IP, 9559)
+tts = ALProxy("ALTextToSpeech", NAO_IP, 9559)
     
 rospy.init_node("drawing_nao")
 
@@ -130,7 +131,11 @@ def drawing(infoFromPrevState):
         fractionMaxSpeed  = 0.2
         resting_sitting = [-0.007711887359619141, 0.07972598075866699, 1.3805580139160156, 0.15949392318725586, -0.7808480262756348, -1.061486005783081, 0.09506607055664062, 0.014799952507019043, -0.24846601486206055, -0.07205605506896973, -0.7009961605072021, 2.112546443939209, -1.1894419193267822, 0.07501578330993652, -0.24846601486206055, 0.06447005271911621, -0.7133519649505615, 2.112546443939209, -1.186300277709961, -0.07512402534484863, 1.4067201614379883, -0.16878199577331543, 0.7822980880737305, 1.0769100189208984, -0.10128593444824219, 0.018800020217895508]
         resting_standing = [-0.004643917083740234, 0.01683211326599121, 1.4388500452041626, 0.27454400062561035, -1.3699040412902832, -0.98785400390625, 0.010695934295654297, 0.26080000400543213, 4.1961669921875e-05, 4.1961669921875e-05, -0.4494199752807617, 0.6994619369506836, -0.3497939109802246, 4.1961669921875e-05, 4.1961669921875e-05, 4.1961669921875e-05, -0.44950389862060547, 0.7010800838470459, -0.34970998764038086, 4.1961669921875e-05, 1.4205260276794434, -0.27922987937927246, 1.389762043952942, 0.9910058975219727, 0.042910099029541016, 0.25760000944137573]         
-
+        
+        # Reset speech parameters to nominal.
+        tts.setParameter("pitchShift", 0)
+        tts.setVolume(0.5)
+        
         if first_story:
             if naoSpeaking:
                 trackFace()             
@@ -497,7 +502,9 @@ def drawing(infoFromPrevState):
                     motionProxy.setAngles(names, resting_standing, fractionMaxSpeed)
                 else:
                     motionProxy.setAngles(names, resting_sitting, fractionMaxSpeed)
-                
+        
+        tts.resetSpeed()
+        
         # Stop tracker.
         tracker.stopTracker()
         tracker.unregisterAllTargets()
@@ -508,7 +515,7 @@ def drawing(infoFromPrevState):
         msg.data = "learning_words_nao"
         pub_activity.publish(msg)
                 
-        textToSpeech.setLanguage("English")        
+        #textToSpeech.setLanguage("English")        
         changeActivityReceived = " "
         nextState = "PAUSE_INTERACTION"
         infoForNextState = {'state_cameFrom': "DRAWING"}

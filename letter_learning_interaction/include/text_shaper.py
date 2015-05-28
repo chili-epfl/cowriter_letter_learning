@@ -38,7 +38,18 @@ LETTER_BOUNDINGBOXES = {'a': (1.00, 1., 0.),
                         'w': (1.88, 1., 0.),
                         'x': (1.90, 1., 0.),
                         'y': (1.34, 1., 1.33),
-                        'z': (1.38, 1., 1.33)}
+                        'z': (1.38, 1., 1.33),
+                        '0': (2, 3, 0.),
+                        '1': (2, 3, 0.),
+                        '2': (2, 3, 0.),
+                        '3': (2, 3, 0.),
+                        '4': (2, 3, 0.),
+                        '5': (2, 3, 0.),
+                        '6': (2, 3, 0.),
+                        '7': (2, 3, 0.),
+                        '8': (2, 3, 0.),
+                        '9': (2, 3, 0.)}
+
 
 class ShapedWord:
     """ Container for the paths of the letters of a given word.
@@ -319,6 +330,10 @@ class ScreenManager:
         distances = {}
 
         for word in self.words:
+	    #HACK: nb bb may be bigger than len(word) for multistroke letters like i
+	    if len(word.get_letters_bounding_boxes()) != len(word.word):
+		return None, None
+	    ###
             for i, bb in enumerate(word.get_letters_bounding_boxes()):
                 x1,y1,x2,y2 = bb
                 bbx = float(x2 + x1)/2

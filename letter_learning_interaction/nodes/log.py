@@ -28,7 +28,7 @@ class log():
         rospy.Subscriber("lookAt", String, self.look_robot_callback)            # Where the child is looking at
         rospy.Subscriber("smile", Empty, self.smile_robot_callback)             # The child is smiling
         rospy.Subscriber("movement", Int16, self.movement_callback)             # The child is moving while sitting
-        #rospy.Subscriber("sizeHead", Int16, self.proximity_callback)            # The child is getting closer
+        rospy.Subscriber("sizeHead", Int16, self.proximity_callback)            # The child is getting closer
         rospy.Subscriber("novelty", Float32, self.novelty_callback)             # Something new happen in the scenario
         #rospy.Subscriber("activity_time", Int32, self.time_callback)            # For how long the activity was done
         rospy.Subscriber("nb_repetitions", Int16, self.repetitions_callback)    # The number of word repetitions
@@ -80,13 +80,13 @@ class log():
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
             wr.writerow([timestamp, movement])
         
-#    def proximity_callback(self, data):
-#        timestamp = getTime()
-#        proximity = "proximity: " + str(data.data)
-#                
-#        with open('log.csv', 'a') as csvfile:
-#            wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
-#            wr.writerow([timestamp, proximity])
+    def proximity_callback(self, data):
+        timestamp = self.getTime()
+        proximity = "proximity: " + str(data.data)
+                
+        with open(self.filePath, 'a') as csvfile:
+            wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
+            wr.writerow([timestamp, proximity])
     
     def novelty_callback(self, data):
         timestamp = self.getTime()

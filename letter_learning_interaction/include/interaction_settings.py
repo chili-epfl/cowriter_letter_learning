@@ -57,7 +57,7 @@ class InteractionSettings():
     @staticmethod
     def getPhrases(language):
         if(language.lower()=='english'):
-            introPhrase = "Hello. I'm Nao."
+            introPhrase = "Hello. I'm Me me."
             testPhrase = "Ok, test time. I'll try my best."
             thankYouPhrase = 'I was a good training! Thank you... I hope I will see you again'
             introLearningWordsPhrase = "I want to practice my writing... Can you help me?"
@@ -76,9 +76,16 @@ class InteractionSettings():
             word_again_response_phrases = ["Let's try %s again.", "I like to practice this word"]
             
         elif(language.lower()=='french'):
-            introPhrase = "Allez, on écrit des mots"
+            introPhrase = "Bonjour, je suis Mimi. Je voudrais apprendre à dessiner des chiffres." 
             testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
-            thankYouPhrase = "Merci pour ton aide !"
+            thankYouPhrase = "Merci pour ton aide, j'ai beaucoup appris grâce à toi... J'éspère qu'on se reverra !"
+            introLearningWordsPhrase = "J'aimerai m'entrainer à l'écriture... Peux-tu m'aider ?"
+            introDrawingPhrase = 'Je suis un peu fatigué... Je connais une histoire sympa. Je vais te la raconter... '
+            
+            againLearningWordsPhrase = 'Je voudrais apprendre à écrire encore un petit peu...'
+            againDrawingPhrase = 'Je connais une autre histoire sympa. Je vais te la raconter...'
+            introJokePhrase = 'All right... Can you also show me how to write?'
+            againJokePhrase = 'I will tell you the joke again.'
             
             #The following phrases may have an optional string formatted into them
             demo_response_phrases = ["Ok", "D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Bon", "Ce %s est pas mal", "Bon, j'essaye comme toi", "D'accord", "Ok, à moi", "À mon tour", "Ok", "Merci, je vais essayer"]
