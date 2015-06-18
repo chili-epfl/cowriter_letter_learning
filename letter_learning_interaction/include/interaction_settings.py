@@ -78,7 +78,7 @@ class InteractionSettings():
             word_again_response_phrases = ["Let's try %s again.", "I like to practice this word"]
             
         elif(language.lower()=='french'):
-            introPhrase = "Bonjour, je suis Mimi. Je voudrais apprendre à dessiner des chiffres." 
+            introPhrase = "Salut Henry, moi c'est Clem. Je voudrais apprendre à essiner des chiffres comme Mimi." 
             testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
             thankYouPhrase = "Merci pour ton aide, j'ai beaucoup appris grâce à toi... J'éspère qu'on se reverra !"
             introLearningWordsPhrase = "J'aimerai m'entrainer à l'écriture... Peux-tu m'aider ?"
@@ -90,8 +90,8 @@ class InteractionSettings():
             againJokePhrase = 'I will tell you the joke again.'
             
             #The following phrases may have an optional string formatted into them
-            refusing_response_phrases = ["Oh, je pense que ce n'est pas la forme que je voudrais apprendre... peux-tu essayer un peu plus comme ça ?", "Je ne suis pas sur de comprendre, peux tu m'enseigner cette forme-la ?", "Je ne reconnais pas cette forme, peux-tu essayer de m'enseigner comment on fait cette forme ? regarde !"]
-            wrong_way_response_phrases = ["Je crois que tu l'as fait dans le mauvais sens, peux-tu essayer dans le meme sens que moi ? c'est comme ça que je voudrais apprendre, regarde !", "Oh, ce n'est pas le sens que je voudrais apprendre... Peux tu me montrer comment on fait pour ce sens la, regarde !"]
+            refusing_response_phrases = ["Hmm je ne suis pas sur d'avoir compris...", "Je ne suis pas sur de comprendre, ca ne ressemble pas tout à fait  à ce  que Mimi m'a montré . ","Je ne vais essayer mais je ne suis pas sur de comprendre..."]
+            wrong_way_response_phrases = ["Je crois que tu l'as fait dans le mauvais sens, peux-tu essayer dans le meme sens que Mimi ? c'est comme ça que je voudrais apprendre, regarde !", "Oh, ce n'est pas le sens que je voudrais apprendre... Peux tu me montrer comment on fait pour ce sens la, regarde !"]
             demo_response_phrases = ["Ok", "D'accord, j'essaye comme ça", "Ah, c'est comme ça qu'on écrit %s", "Bon", "Ce %s est pas mal", "Bon, j'essaye comme toi", "D'accord", "Ok, à moi", "À mon tour", "Ok", "Merci, je vais essayer"]
             asking_phrases_after_feedback = ["C'est mieux ?", "Voilà", "Et comme ça ?", "Tu en penses quoi ?", "Alors ?", "Qu'est-ce que tu en penses ?", "Il y a une différence ?", "Ça va cette fois ?", "Je me suis amélioré ?", "Tu trouves que c'est mieux ?"]
             asking_phrases_after_word = ["Bon, qu'est ce que tu en penses ?", "Pas facile !", "Voilà", "C'est bien comme ça ?", "Bon", "Je crois que j'ai besoin d'aide.", "Et voilà !"]
@@ -121,7 +121,7 @@ class InteractionSettings():
 
         datasetFile = datasetDirectory + '/' + shapeType + '.dat'
         if not os.path.exists(datasetFile):
-            raise RuntimeError("Dataset is not known for shape "+ shapeType)
+            raise RuntimeError("Dataset "+datasetFile+" not found")
 
         datasetParam = datasetDirectory + '/params.dat'
         if not os.path.exists(datasetParam):
@@ -139,7 +139,8 @@ class InteractionSettings():
                     paramsToVary = paramsToVary, 
                     doGroupwiseComparison = True, 
                     initDatasetFile = datasetFile, 
-                    updateDatasetFiles = None, 
+                    updateDatasetFiles = None,
+                    robotDataFiles = ['/home/alexis/dev/share/shape_learning/robot_tries/with_henry/'+shapeType+'.dat'],
                     initialBounds = initialBounds, 
                     initialBounds_stdDevMultiples = initialBounds_stdDevMultiples,
                     initialParamValue = initialParamValue, 

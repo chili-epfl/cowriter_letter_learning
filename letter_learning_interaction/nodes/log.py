@@ -43,7 +43,7 @@ class log():
         
         
         date_time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
-        self.filePath = '/home/ferran/.ros/visionLog/' + date_time + '.csv'
+        self.filePath = '/home/alexis/.ros/visionLog/' + date_time + '.csv'
         
         with open(self.filePath, 'wb') as csvfile:
             intro = '********************************NEW SESSION********************************'

@@ -76,8 +76,27 @@ def make_bounding_box_msg(bbox, selected=False):
 
     return bb
 
+def separate_strokes_with_density(shapedWord):
 
-def make_traj_msg(shapedWord, deltaT, FRAME, delayBeforeExecuting, t0, log = False):
+    pen_ups = []
+    paths = shapedWord.get_letters_paths()
+
+    for path in paths:
+        dists = []        
+        for (x1,y1),(x2,y2) in zip(path[:-1],path[1:]):
+            dists.append(numpy.sqrt((x1-x2)**2+(y1-y2)**2))
+        mean_dist = numpy.mean(dists)
+        density = numpy.array(dists)/mean_dist
+        pen_up = numpy.zeros(len(density)+1)
+        pen_up[density>3] = 1
+        #pen_up[-1] = 1
+        pen_ups.append(pen_up)
+
+    return pen_ups
+
+
+
+def make_traj_msg(shapedWord, deltaT, FRAME, delayBeforeExecuting, t0,pen_ups, log = False):
 
     traj = Path()
     traj.header.frame_id = FRAME
@@ -89,23 +108,29 @@ def make_traj_msg(shapedWord, deltaT, FRAME, delayBeforeExecuting, t0, log = Fal
     if log:
         generatedWordLogger.info("%s" % [[(x,-y) for x, y in path] for path in paths])
 
+    j = -1
     for path in paths:
+        j+=1
+        pen_up = pen_ups[j]
         first = True
-        for x, y in path:
+        i = 1
+        for x, y in path[1:-1]:
             point = PoseStamped()
 
             point.pose.position.x = x
-            point.pose.position.y = y
+            point.pose.position.y = y   
             point.header.frame_id = FRAME
+            print point.header.frame_id
             point.header.stamp = rospy.Time(t0 + pointIdx * deltaT) #@TODO allow for variable time between points for now
 
-            if first:
-                point.header.seq = 1
+            if first or pen_up[i]==1 or pen_up[i-1]==1:# or pen_up[i+1]==1:
+                point.header.seq = 1 # set header.seq=1 each time new stroke !!!!
                 first = False
 
             traj.poses.append(deepcopy(point))
 
             pointIdx += 1
+            i+=1
 
     return traj
 

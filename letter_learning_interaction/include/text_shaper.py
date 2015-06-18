@@ -214,14 +214,16 @@ class TextShaper:
 
             if offset_x != 0 or offset_y != 0: # not the first letter
                 offset_x -= x_shape[0] * SIZESCALE_WIDTH * scale_factor
-                offset_y += y_shape[0] * SIZESCALE_HEIGHT * scale_factor
+                offset_y = y_shape[0] * SIZESCALE_HEIGHT * scale_factor
+            else:
+                offset_y = y_shape[0] * SIZESCALE_HEIGHT * scale_factor
 
             for i in range(numPointsInShape):
                 x = x_shape[i] * SIZESCALE_WIDTH * scale_factor
                 y = -y_shape[i] * SIZESCALE_HEIGHT * scale_factor
 
                 x += offset_x
-                y += offset_y
+                #y += offset_y
 
 
                 path.append((x,y))
