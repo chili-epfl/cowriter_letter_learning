@@ -11,7 +11,10 @@ resulting learned shapes for the robot and tablet to draw.
 import numpy
 from letter_learning_interaction.interaction_settings import InteractionSettings
 from letter_learning_interaction.helper import configure_logging, downsampleShape, make_bounding_box_msg, make_traj_msg, separate_strokes_with_density, lookAtTablet, lookAndAskForFeedback
-from shape_learning.shape_learner_manager import ShapeLearnerManager
+#
+#from shape_learning.shape_learner_manager import ShapeLearnerManager
+#
+from allograph.learning_manager import LearningManager
 from shape_learning.shape_modeler import ShapeModeler #for normaliseShapeHeight()
 from letter_learning_interaction.text_shaper import TextShaper, ScreenManager
 from letter_learning_interaction.state_machine import StateMachine
@@ -244,68 +247,38 @@ def trackFace():
 def respondToDemonstration(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION")
-    pub_state_activity.publish("RESPONDING_TO_DEMONSTRATION")
     demoShapesReceived = infoFromPrevState['demoShapesReceived']
 
     # update the shape models with the incoming demos
     new_shapes = []
 
     letters = "".join([s.shapeType for s in demoShapesReceived])
-
-    acceptance = 1
     
+    if naoSpeaking:
+        global demo_response_phrases_counter
+        try:
+            toSay = demo_response_phrases[demo_response_phrases_counter] % letters
+        except TypeError: #string wasn't meant to be formatted
+            toSay = demo_response_phrases[demo_response_phrases_counter]
+        demo_response_phrases_counter += 1
+        if demo_response_phrases_counter==len(demo_response_phrases):
+            demo_response_phrases_counter = 0
+        textToSpeech.say(toSay)
+        rospy.loginfo('NAO: '+toSay)
+
+
     for shape in demoShapesReceived:
         glyph = shape.path
         shapeName = shape.shapeType
 
-        glyph = downsampleShape(glyph, NUMPOINTS_SHAPEMODELER)
+        glyph = downsampleShape(glyph)
 
 
         rospy.loginfo("Received demo for " + shapeName)
         shapeIndex = wordManager.currentCollection.index(shapeName)
-        if shapeName in ['0','6','8']:
-            shape,response = wordManager.respondToGoodDemonstration_modulo_shape(shapeIndex, glyph)
-            if not response:
-                acceptance = 2
-        else:
-            shape,response = wordManager.respondToGoodDemonstration(shapeIndex, glyph)
-            if response==0:
-                acceptance = 2
-            if response==1:
-                acceptance = 3
+        shape = wordManager.respondToDemonstration(shapeIndex, glyph)
 
         new_shapes.append(shape)
-        wordManager.save_robot_try(0)
-        #wordManager.save_all(0)
-
-    if naoSpeaking:
-        global demo_response_phrases_counter
-        global refusing_response_phrases_counter
-        global wrong_way_response_phrases_counter
-
-        if acceptance==1:
-            try:
-                toSay = demo_response_phrases[demo_response_phrases_counter] % letters
-            except TypeError: #string wasn't meant to be formatted
-                toSay = demo_response_phrases[demo_response_phrases_counter]
-            demo_response_phrases_counter += 1
-            if demo_response_phrases_counter==len(demo_response_phrases):
-                demo_response_phrases_counter = 0
-
-        if acceptance==2:
-            toSay = refusing_response_phrases[refusing_response_phrases_counter]
-            refusing_response_phrases_counter += 1
-            if refusing_response_phrases_counter==len(refusing_response_phrases):
-                refusing_response_phrases_counter = 0
-
-        if acceptance==3:
-            toSay = wrong_way_response_phrases[wrong_way_response_phrases_counter]
-            wrong_way_response_phrases_counter += 1
-            if wrong_way_response_phrases_counter==len(wrong_way_response_phrases):
-                wrong_way_response_phrases_counter = 0
-
-        textToSpeech.say(toSay)
-        rospy.loginfo('NAO: '+toSay)
 
     state_goTo = deepcopy(drawingLetterSubstates)
     nextState = state_goTo.pop(0)
@@ -315,114 +288,36 @@ def respondToDemonstration(infoFromPrevState):
 def respondToDemonstrationWithFullWord(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION_FULL_WORD')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION_FULL_WORD")
-    pub_state_activity.publish("RESPONDING_TO_DEMONSTRATION_FULL_WORD")
     demoShapesReceived = infoFromPrevState['demoShapesReceived']
-    
-    # Stop tracker.
-    tracker.stopTracker()
-    tracker.unregisterAllTargets()
 
     letters = "".join([s.shapeType for s in demoShapesReceived])
-
-    if len(demoShapesReceived)>1:
-        
-        if naoSpeaking:
-            global demo_response_phrases_counter
-            try:
-                toSay = demo_response_phrases[demo_response_phrases_counter] % letters
-            except TypeError: #string wasn't meant to be formatted
-                toSay = demo_response_phrases[demo_response_phrases_counter]
-            demo_response_phrases_counter += 1
-            if demo_response_phrases_counter==len(demo_response_phrases):
-                demo_response_phrases_counter = 0
-            textToSpeech.say(toSay)
-            rospy.loginfo('NAO: '+toSay)
-
-
-        # 1- update the shape models with the incoming demos
-        for shape in demoShapesReceived:
-            glyph = shape.path
-            shapeName = shape.shapeType
-
-            rospy.logdebug("Downsampling %s..." % shapeName)
-            glyph = downsampleShape(glyph, NUMPOINTS_SHAPEMODELER)
-            rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
-            shapeIndex = wordManager.currentCollection.index(shapeName)
-            wordManager.respondToDemonstration(shapeIndex, glyph)
-            
-            demo = wordManager.currentDemo
-            msg = String()
-            msg.data = demo        
-            pub_current_demo.publish(msg)
-            
-            learn = wordManager.currentLearn
-            msg = String()
-            msg.data = learn        
-            pub_current_learn.publish(msg)
-
-    else:
-
-        acceptance = 1
-
-        for shape in demoShapesReceived:
-            glyph = shape.path
-            shapeName = shape.shapeType
-
-            glyph = downsampleShape(glyph, NUMPOINTS_SHAPEMODELER)
-
-
-            rospy.loginfo("Received demo for " + shapeName)
-            shapeIndex = wordManager.currentCollection.index(shapeName)
     
-            if shapeName in ['0','6','8']:
-                shape,response = wordManager.respondToGoodDemonstration_modulo_shape(shapeIndex, glyph)
-                if not response:
-                    acceptance = 2
-            else:
-                shape,response = wordManager.respondToGoodDemonstration(shapeIndex, glyph)
-                if response==0:
-                    acceptance = 2
-                if response==1:
-                    acceptance = 3
-
-            #new_shapes.append(shape)
-            wordManager.save_robot_try(0)
-            #wordManager.save_all(0)
-
-        if naoSpeaking:
-            global demo_response_phrases_counter
-            global refusing_response_phrases_counter
-            global wrong_way_response_phrases_counter
-
-            if acceptance==1:
-                try:
-                    toSay = demo_response_phrases[demo_response_phrases_counter] % letters
-                except TypeError: #string wasn't meant to be formatted
-                    toSay = demo_response_phrases[demo_response_phrases_counter]
-                demo_response_phrases_counter += 1
-                if demo_response_phrases_counter==len(demo_response_phrases):
-                    demo_response_phrases_counter = 0
-
-            if acceptance==2:
-                toSay = refusing_response_phrases[refusing_response_phrases_counter]
-                refusing_response_phrases_counter += 1
-                if refusing_response_phrases_counter==len(refusing_response_phrases):
-                    refusing_response_phrases_counter = 0
-
-            if acceptance==3:
-                toSay = wrong_way_response_phrases[wrong_way_response_phrases_counter]
-                wrong_way_response_phrases_counter += 1
-                if wrong_way_response_phrases_counter==len(wrong_way_response_phrases):
-                    wrong_way_response_phrases_counter = 0
-            textToSpeech.say(toSay)
-            rospy.loginfo('NAO: '+toSay)
+    if naoSpeaking:
+        global demo_response_phrases_counter
+        try:
+            toSay = demo_response_phrases[demo_response_phrases_counter] % letters
+        except TypeError: #string wasn't meant to be formatted
+            toSay = demo_response_phrases[demo_response_phrases_counter]
+        demo_response_phrases_counter += 1
+        if demo_response_phrases_counter==len(demo_response_phrases):
+            demo_response_phrases_counter = 0
+        textToSpeech.say(toSay)
+        rospy.loginfo('NAO: '+toSay)
 
 
+    # 1- update the shape models with the incoming demos
+    for shape in demoShapesReceived:
+        glyph = shape.path
+        shapeName = shape.shapeType
+
+        rospy.logdebug("Downsampling %s..." % shapeName)
+        glyph = downsampleShape(glyph)
+        rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
+        shapeIndex = wordManager.currentCollection.index(shapeName)
+        wordManager.respondToDemonstration(shapeIndex, glyph)
 
     # 2- display the update word
 
-    lookAtTablet(motionProxy, effector)
-    
     #clear screen
     screenManager.clear()
     pub_clear.publish(Empty())
@@ -435,11 +330,7 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
                         'shapesToPublish': shapesToPublish,
                         'wordToWrite': wordManager.currentCollection}
 
-    #wordManager.save_robot_try(shapeIndex)
-    #wordManager.save_all(shapeIndex)
-
     return nextState, infoForNextState
-
 
 def publishShape(infoFromPrevState):
     # TODO: publishShape is currently broken. Needs to be updated to use the
@@ -974,6 +865,7 @@ if __name__ == "__main__":
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]
         datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/bad_letters'
+        robotDirectory = installDirectory + '/share/shape_learning/robot_tries/with_henry'
 
     stateMachine = StateMachine()
     stateMachine.add_state("STARTING_INTERACTION", startInteraction)
@@ -1029,8 +921,12 @@ if __name__ == "__main__":
     myBroker, postureProxy, motionProxy, textToSpeech, armJoints_standInit = ConnexionToNao.setConnexion(naoConnected, naoWriting, naoStanding, NAO_IP, LANGUAGE, effector)
 
     #initialise word manager (passes feedback to shape learners and keeps history of words learnt)
-    InteractionSettings.setDatasetDirectory(datasetDirectory)
-    wordManager = ShapeLearnerManager(InteractionSettings.generateSettings, SHAPE_LOGGING_PATH)
+    #
+    #InteractionSettings.setDatasetDirectory(datasetDirectory)
+    #wordManager = ShapeLearnerManager(InteractionSettings.generateSettings, SHAPE_LOGGING_PATH)
+    #
+    learningManager = LearningManager(datasetDirectory, datasetDirectory, robotDirectory)
+
     textShaper = TextShaper()
     screenManager = ScreenManager(0.2, 0.1395)
 
