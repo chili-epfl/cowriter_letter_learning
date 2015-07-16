@@ -185,7 +185,7 @@ class ShapedWord:
 class TextShaper:
 
     @staticmethod
-    def shapeWord(word, downsampling_factor=None):
+    def shapeWord(learner, downsampling_factor=None):
         """Assembles the paths of the letters of the given word into a global shape.
 
         :param word: a ShapeLearnerManager instance for the current word
@@ -198,19 +198,18 @@ class TextShaper:
         paths = []
 
         offset_x = offset_y = 0
-        for shape in word.shapesOfCurrentCollection():
+        for letter in learner.current_word:
 
             path = []
 
-            w, ah, bh = LETTER_BOUNDINGBOXES[shape.shapeType]
+            w, ah, bh = LETTER_BOUNDINGBOXES[letter]
             scale_factor = ah + bh # height ratio between this letter and a 'a'
             #no need for a width scaling since the shape are only *height*-normalized (cf below)
 
-            glyph = ShapeModeler.normaliseShapeHeight(shape.path)
-            numPointsInShape = len(glyph)/2  
-
-            x_shape = glyph[0:numPointsInShape].flatten().tolist()
-            y_shape = glyph[numPointsInShape:].flatten().tolist()
+            stroke = learner.generated_letters[letter]
+            x_shape = stroke.x.tolist()
+            y_shape = stroke.y.tolist()
+            numPointsInShape = len(x_shape)
 
             if offset_x != 0 or offset_y != 0: # not the first letter
                 offset_x -= x_shape[0] * SIZESCALE_WIDTH * scale_factor
@@ -230,23 +229,13 @@ class TextShaper:
 
             paths.append(path)
 
-            if shape.shapeType in ['i', 'j']:
-                # HACK: waiting for proper multi-stroke learning
-                logger.info("Adding a 'dot' to the letter")
-                dot_path = [ (offset_x + 0.0 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.8 * SIZESCALE_WIDTH * scale_factor),
-                         (offset_x + 0.05 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.85 * SIZESCALE_HEIGHT * scale_factor),
-                         (offset_x + 0.0 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.85 * SIZESCALE_HEIGHT * scale_factor),
-                         (offset_x + 0.0 * SIZESCALE_WIDTH * scale_factor, offset_y + 0.8 * SIZESCALE_HEIGHT * scale_factor)
-                        ]
-                paths.append(dot_path)
-
             # connect the letter to the ending point of the previous one
             offset_x = path[-1][0]
             offset_y = path[-1][1]
 
 
 
-        return ShapedWord(word.currentCollection, paths)
+        return ShapedWord(learner.current_word, paths)
 
     @staticmethod
     def reference_boundingboxes(word):
