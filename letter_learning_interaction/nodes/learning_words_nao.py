@@ -104,10 +104,6 @@ def onUserDrawnShapeReceived(shape):
             rospy.loginfo('Received template demonstration for letters ' + str(demo_from_template.keys()))
 
             for name, path in demo_from_template.items():
-                # HACK: do not learn multi-stroke letters for now
-                if name in []:
-                    rospy.logwarn('Received demonstration for multi-stroke letter <%s>: ignoring it.' % name)
-                    continue
 
                 flatpath = [x for x, y in path]
                 flatpath.extend([-y for x, y in path])
@@ -271,7 +267,7 @@ def respondToDemonstration(infoFromPrevState):
         glyph = shape.path
         shapeName = shape.shapeType
 
-        glyph = downsampleShape(glyph)
+        glyph = downsampleShape(glyph,NUMPOINTS_SHAPEMODELER)
 
 
         rospy.loginfo("Received demo for " + shapeName)
@@ -310,9 +306,9 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         shapeName = shape.shapeType
 
         rospy.logdebug("Downsampling %s..." % shapeName)
-        glyph = downsampleShape(glyph)
+        glyph = downsampleShape(glyph, NUMPOINTS_SHAPEMODELER)
         rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
-        learningManager.respond_to_demonstration(glyph, shapeName)
+        learningManager.respond_to_demonstration_letter(glyph, shapeName)
 
     # 2- display the update word
 
@@ -859,7 +855,7 @@ settings_shapeLearners = []
 if __name__ == "__main__":
 
     datasetDirectory = rospy.get_param('~dataset_directory','default')
-    if(datasetDirectory.lower()=='default'): #use default
+    if True :#(datasetDirectory.lower()=='default'): #use default
         import inspect
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]

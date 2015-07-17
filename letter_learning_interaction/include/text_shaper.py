@@ -207,8 +207,8 @@ class TextShaper:
             #no need for a width scaling since the shape are only *height*-normalized (cf below)
 
             stroke = learner.generated_letters[letter]
-            x_shape = stroke.x.tolist()
-            y_shape = stroke.y.tolist()
+            x_shape = numpy.array(stroke.x).tolist()
+            y_shape = numpy.array(stroke.y).tolist()
             numPointsInShape = len(x_shape)
 
             if offset_x != 0 or offset_y != 0: # not the first letter
