@@ -275,8 +275,7 @@ def respondToDemonstration(infoFromPrevState):
 
 
         rospy.loginfo("Received demo for " + shapeName)
-        shapeIndex = wordManager.currentCollection.index(shapeName)
-        shape = wordManager.respondToDemonstration(shapeIndex, glyph)
+        shape = learningManager.respond_to_demonstration_letter(glyph, shapeName)
 
         new_shapes.append(shape)
 
@@ -313,8 +312,7 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         rospy.logdebug("Downsampling %s..." % shapeName)
         glyph = downsampleShape(glyph)
         rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
-        shapeIndex = wordManager.currentCollection.index(shapeName)
-        wordManager.respondToDemonstration(shapeIndex, glyph)
+        learningManager.respond_to_demonstration(glyph, shapeName)
 
     # 2- display the update word
 
@@ -323,12 +321,12 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
     pub_clear.publish(Empty())
     rospy.sleep(0.5)
 
-    shapesToPublish = wordManager.shapesOfCurrentCollection()
+    shapesToPublish = learningManager.shape_message_word()
 
     nextState = 'PUBLISHING_WORD'
     infoForNextState = {'state_cameFrom': "RESPONDING_TO_DEMONSTRATION_FULL_WORD",
                         'shapesToPublish': shapesToPublish,
-                        'wordToWrite': wordManager.currentCollection}
+                        'wordToWrite': learningManager.current_word}
 
     return nextState, infoForNextState
 
@@ -377,7 +375,7 @@ def publishWord(infoFromPrevState):
     #print('------------------------------------------ PUBLISHING_WORD')
     rospy.loginfo("STATE: PUBLISHING_WORD")
     pub_state_activity.publish("PUBLISHING_WORD")
-    shapedWord = textShaper.shapeWord(wordManager)
+    shapedWord = textShaper.shapeWord(learningManager)
     placedWord = screenManager.place_word(shapedWord)
 
     pen_ups = separate_strokes_with_density(placedWord)
@@ -435,7 +433,7 @@ def waitForShapeToFinish(infoFromPrevState):
     if shapeFinished:
         
         # draw the templates for the demonstrations
-        ref_boundingboxes = screenManager.place_reference_boundingboxes(wordManager.currentCollection)
+        ref_boundingboxes = screenManager.place_reference_boundingboxes(learningManager.current_word)
         for bb in ref_boundingboxes:
             pub_bounding_boxes.publish(make_bounding_box_msg(bb, selected=False))
             rospy.sleep(0.2) #leave some time for the tablet to process the bbs
@@ -474,9 +472,10 @@ def respondToNewWord(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_NEW_WORD')
     rospy.loginfo("STATE: RESPONDING_TO_NEW_WORD")
     pub_state_activity.publish("RESPONDING_TO_NEW_WORD")
-    global shapeFinished, wordManager #@TODO make class attribute 
+    global shapeFinished, learningManager #@TODO make class attribute 
     wordToLearn = infoFromPrevState['wordReceived']
-    wordSeenBefore = wordManager.newCollection(wordToLearn)
+    wordSeenBefore = learningManager.seen_before(wordToLearn)
+    learningManager.word_to_learn(wordToLearn)
     
     
     # Stop tracker.
@@ -517,8 +516,8 @@ def respondToNewWord(infoFromPrevState):
 
     #start learning    
     shapesToPublish = []   
-    for i in range(len(wordToLearn)):
-        shape = wordManager.startNextShapeLearner()
+    for letter in wordToLearn:
+        shape = learningManager.shape_message(letter)
         shapesToPublish.append(shape)
 
     nextState = 'PUBLISHING_WORD'
