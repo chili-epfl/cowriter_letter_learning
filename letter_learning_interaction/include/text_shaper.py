@@ -222,7 +222,7 @@ class TextShaper:
                 y = -y_shape[i] * SIZESCALE_HEIGHT * scale_factor
 
                 x += offset_x
-                #y += offset_y
+                y += offset_y
 
 
                 path.append((x,y))
@@ -291,7 +291,17 @@ class ScreenManager:
 
         origin = [self.width * 0.25, self.height * 0.25]
 
-        self.ref_word = word 
+        self.ref_word = []
+        letter_count = numpy.zeros(len(word))
+        letter_seen = []
+        for i,letter in enumerate(word):
+            if letter in letter_seen:
+                letter_count[i] += 1
+                letter_seen.append(letter)
+                letter = letter + '%i'%letter_count[i]
+            else:
+                letter_seen.append(letter)
+            self.ref_word.append(letter)
         self.ref_boundingboxes = [(x1 + origin[0], y1 + origin[1], x2 + origin[0], y2 + origin[1]) for x1, y1, x2, y2 in bbs]
 
         return self.ref_boundingboxes
@@ -343,9 +353,20 @@ class ScreenManager:
         x,y = ShapeModeler.getShapeCentre(path)
         return self.closest_letter(x, y)
 
+    def find_boxe(self, x):
+        boxe = 0
+        for bb in range(len(self.ref_boundingboxes)):
+            if x<self.ref_boundingboxes[bb][2] and x>=self.ref_boundingboxes[bb][0]:
+                boxe = bb
+        if x>self.ref_boundingboxes[-1][2]:
+            boxe = -1
+        if x<self.ref_boundingboxes[0][0]:
+            boxe = 0
+        return boxe
+
     def split_path_from_template(self, path):
         """ Returns a dict of ('letter':path)s by spliting a given path (typically, a full
-        word) on the boundaries of the current screen reference bounding boxes.
+        word) on the boundaries of the current screen reference bounding boxes
 
         Returns an empty dict if the path does not intersect with all the
         letters' bounding boxes.
@@ -355,34 +376,25 @@ class ScreenManager:
 
 
         # first, check that the path does intersect with *each* of the
-        # reference bbs.
+        # reference bbs. <-- that is an hack : should be able to learn parts of the word
         for bb in self.ref_boundingboxes:
             if not ScreenManager.intersect(bb, path_bb):
                 return {}
 
-        current_bb = 0
-
         glyphs = OrderedDict()
-        glyph = []
+        for bb in range(len(self.ref_boundingboxes)):
+            glyphs[self.ref_word[bb]] = []
+
         for i, point in enumerate(path):
 
             x,y = point
 
-            glyph.append((x,y))
-
-            if x > self.ref_boundingboxes[current_bb][2]: # x > bb.x_max
-
-                # last bounding box? put everythin remaining bits in the last glyph
-                if current_bb == len(self.ref_boundingboxes)-1:
-                    glyph.extend(path[i+1:])
-                    break
-                else:
-                    glyphs[self.ref_word[current_bb]] = glyph[:]
-
-                current_bb += 1
-                glyph = []
-
-        glyphs[self.ref_word[current_bb]] = glyph[:]
+            boxe_indice = self.find_boxe(x)
+            glyphs[self.ref_word[boxe_indice]].append((x,y))
+           
+        for letter in glyphs.keys():
+            if len(letter)>1:
+                glyphs.pop(letter)
         return glyphs
 
     @staticmethod
