@@ -37,6 +37,7 @@
     <arg name="current_activity_topic" default="activity" />
     <arg name="time_activity_topic" default="time_activity" />
     <arg name="nb_repetitions_topic" default="nb_repetitions" />
+    <arg name="user_feedback" default="+0"/>
 
     
     <!-- Outputs from learning algorithm -->
@@ -131,7 +132,8 @@
     </node>
 
     <!-- Start the learning algorithm -->
-    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">	    
+    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">	   
+        <param  name="user_feedback" type="str" value="$(arg user_feedback)"/>
 	<param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
 	<param name="test_request_topic" type="str" value="$(arg test_request_topic)"/>
 	<param name="processed_user_shape_topic" type="str" value="$(arg user_drawn_shapes_topic)"/>

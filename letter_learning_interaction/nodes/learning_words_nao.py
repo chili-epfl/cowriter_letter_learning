@@ -26,6 +26,7 @@ from std_msgs.msg import String, Empty, Bool, Float64MultiArray, Int16
 from letter_learning_interaction.msg import Shape as ShapeMsg
 from letter_learning_interaction.set_connexion import ConnexionToNao
 from copy import deepcopy
+from ast import literal_eval
 
 from naoqi import ALProxy
 
@@ -58,7 +59,7 @@ PROCESSED_USER_SHAPE_TOPIC = rospy.get_param('processed_user_shape_topic','user_
 TEST_TOPIC = rospy.get_param('test_request_topic','test_learning');#Listen for when test card has been shown to the robot
 STOP_TOPIC = rospy.get_param('stop_request_topic','stop_learning');#Listen for when stop card has been shown to the robot
 NB_REPETITIONS_TOPIC = rospy.get_param('nb_repetitions_topic','nb_repetitions');
-
+FEEDBACK_TOPIC = rospy.get_param('user_feedback',"+0")
 
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool, queue_size=10)
 pub_traj = rospy.Publisher(SHAPE_TOPIC, Path, queue_size=10)
@@ -156,6 +157,10 @@ def onClearScreenReceived(message):
     except rospy.ServiceException, e:
         rospy.logerr("Service call failed: %s",e)
 
+def onFeedbackReceived(message):
+    global grade
+    grade += literal_eval(message)
+
 wordReceived = None
 nb_repetitions = 0
 def onWordReceived(message):
@@ -174,7 +179,7 @@ def onWordReceived(message):
         wordReceived = None #ignore 
 
 feedbackReceived = None    
-def onFeedbackReceived(message):
+def onReceivedFeedBack(message):
     global feedbackReceived 
     if(stateMachine.get_state() == "ASKING_FOR_FEEDBACK" 
             or stateMachine.get_state() == "WAITING_FOR_FEEDBACK" 
@@ -271,7 +276,7 @@ def respondToDemonstration(infoFromPrevState):
 
 
         rospy.loginfo("Received demo for " + shapeName)
-        shape = learningManager.respond_to_demonstration_letter(glyph, shapeName)
+        shape = learningManager.respond_to_demonstration_letter(glyph, shapeName, grade)
 
         new_shapes.append(shape)
 
@@ -308,7 +313,7 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
         rospy.logdebug("Downsampling %s..." % shapeName)
         glyph = downsampleShape(glyph, NUMPOINTS_SHAPEMODELER)
         rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
-        learningManager.respond_to_demonstration_letter(glyph, shapeName)
+        learningManager.respond_to_demonstration_letter(glyph, shapeName, grade)
 
     # 2- display the update word
 
@@ -850,6 +855,7 @@ wordsLearnt = []
 shapeLearners = []
 currentWord = []
 settings_shapeLearners = []
+grade = 0 #  +1 if green, -1 if red
 
 
 if __name__ == "__main__":
@@ -898,6 +904,8 @@ if __name__ == "__main__":
     gesture_subscriber = rospy.Subscriber(GESTURE_TOPIC, PointStamped, onSetActiveShapeGesture);     
     #listen for an activity change
     change_activity_subscriber = rospy.Subscriber(ACTIVITY_TOPIC, String, onChangeActivity)
+    #listen for feedback
+    feedback_subscriber = rospy.Subscriber(FEEDBACK_TOPIC, String, onReceivedFeedBack)
 
     #initialise display manager for shapes (manages positioning of shapes)
     from letter_learning_interaction.srv import *
@@ -930,4 +938,4 @@ if __name__ == "__main__":
     rospy.spin()
 
     tabletWatchdog.stop()
-    #robotWatchdog.stop()
+       #robotWatchdog.stop()
