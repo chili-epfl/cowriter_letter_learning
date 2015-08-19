@@ -59,7 +59,7 @@ PROCESSED_USER_SHAPE_TOPIC = rospy.get_param('processed_user_shape_topic','user_
 TEST_TOPIC = rospy.get_param('test_request_topic','test_learning');#Listen for when test card has been shown to the robot
 STOP_TOPIC = rospy.get_param('stop_request_topic','stop_learning');#Listen for when stop card has been shown to the robot
 NB_REPETITIONS_TOPIC = rospy.get_param('nb_repetitions_topic','nb_repetitions');
-FEEDBACK_TOPIC = rospy.get_param('user_feedback',"+0")
+GRADE_TOPIC = rospy.get_param('grade_topic',"user_feedback")
 
 pub_camera_status = rospy.Publisher(PUBLISH_STATUS_TOPIC,Bool, queue_size=10)
 pub_traj = rospy.Publisher(SHAPE_TOPIC, Path, queue_size=10)
@@ -157,9 +157,12 @@ def onClearScreenReceived(message):
     except rospy.ServiceException, e:
         rospy.logerr("Service call failed: %s",e)
 
-def onFeedbackReceived(message):
+def onGradeReceived(message):
     global grade
-    grade += literal_eval(message)
+    #grade += literal_eval(message)
+    if grade>4:
+        grade=4
+    rospy.loginfo('User feedback '+message.data+'1')
 
 wordReceived = None
 nb_repetitions = 0
@@ -866,7 +869,7 @@ if __name__ == "__main__":
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]
         datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/bad_letters'
-        robotDirectory = installDirectory + '/share/shape_learning/robot_tries/with_henry'
+        robotDirectory = installDirectory + '/share/shape_learning/robot_tries/optimal'
 
     stateMachine = StateMachine()
     stateMachine.add_state("STARTING_INTERACTION", startInteraction)
@@ -905,7 +908,7 @@ if __name__ == "__main__":
     #listen for an activity change
     change_activity_subscriber = rospy.Subscriber(ACTIVITY_TOPIC, String, onChangeActivity)
     #listen for feedback
-    feedback_subscriber = rospy.Subscriber(FEEDBACK_TOPIC, String, onReceivedFeedBack)
+    grade_subscriber = rospy.Subscriber(GRADE_TOPIC, String, onGradeReceived)
 
     #initialise display manager for shapes (manages positioning of shapes)
     from letter_learning_interaction.srv import *
