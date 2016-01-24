@@ -59,7 +59,7 @@ class InteractionSettings():
         if(language.lower()=='english'):
             introPhrase = "Hello. I'm Me me."
             testPhrase = "Ok, test time. I'll try my best."
-            thankYouPhrase = 'I was a good training! Thank you... I hope I will see you again'
+            thankYouPhrase = 'It was a good training! Thank you... I hope I will see you again'
             introLearningWordsPhrase = "I want to practice my writing... Can you help me?"
             introDrawingPhrase = 'I feel tired... I would like to practice my french... Can I tell you a story in french.'
             
@@ -78,7 +78,7 @@ class InteractionSettings():
             word_again_response_phrases = ["Let's try %s again.", "I like to practice this word"]
             
         elif(language.lower()=='french'):
-            introPhrase = "Salut Henry, moi c'est Clem. Je voudrais apprendre à essiner des chiffres comme Mimi." 
+            introPhrase = "Salut , moi c'est Clem. Je voudrais apprendre à essiner des chiffres comme Mimi." 
             testPhrase = "Ok, c'est l'heure du test. J'ai un peu peur."
             thankYouPhrase = "Merci pour ton aide, j'ai beaucoup appris grâce à toi... J'éspère qu'on se reverra !"
             introLearningWordsPhrase = "J'aimerai m'entrainer à l'écriture... Peux-tu m'aider ?"

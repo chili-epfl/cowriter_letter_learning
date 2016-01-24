@@ -70,7 +70,8 @@ pub_nb_repetitions = rospy.Publisher(NB_REPETITIONS_TOPIC, Int16, queue_size=10)
 pub_current_demo = rospy.Publisher('current_demo', String, queue_size=10)
 pub_current_learn = rospy.Publisher('current_learn', String, queue_size=10)
 pub_state_activity = rospy.Publisher('state_activity', String, queue_size=10)
-
+pub_score_msg = rospy.Publisher('current_score', Float32, queue_size=10)
+pub_shape_msg = rospy.Publisher('current_shape_demo', Path, queue_size=10)
 
 #get appropriate angles for looking at things
 headAngles_lookAtTablet_down, headAngles_lookAtTablet_right, headAngles_lookAtTablet_left, headAngles_lookAtPerson_front, headAngles_lookAtPerson_right, headAngles_lookAtPerson_left = InteractionSettings.getHeadAngles()
@@ -271,21 +272,27 @@ def respondToDemonstration(infoFromPrevState):
         rospy.loginfo('NAO: '+toSay)
 
 
-    for shape in demoShapesReceived:
-        glyph = shape.path
-        shapeName = shape.shapeType
+    for shape_msg in demoShapesReceived:
+        glyph = shape_msg.path
+        shapeName = shape_msg.shapeType
 
         glyph = downsampleShape(glyph,NUMPOINTS_SHAPEMODELER)
 
 
         rospy.loginfo("Received demo for " + shapeName)
-        shape = learningManager.respond_to_demonstration_letter(glyph, shapeName, grade)
+        new_shape_msg,score = learningManager.respond_to_demonstration_letter(glyph, shapeName, grade)
+	#publish scores and shapes	
+	pub_shape_msg.publish(new_shape_msg)	
+	score_msg = Float32
+	score_msg.data=score
+	pub_score.publish(score_msg)
 
         new_shapes.append(shape)
 
     state_goTo = deepcopy(drawingLetterSubstates)
     nextState = state_goTo.pop(0)
     infoForNextState = {'state_goTo': state_goTo, 'state_cameFrom': "RESPONDING_TO_DEMONSTRATION",'shapesToPublish': new_shapes}
+    #TODO PUB SCORE
     return nextState, infoForNextState
 
 def respondToDemonstrationWithFullWord(infoFromPrevState):
@@ -309,15 +316,19 @@ def respondToDemonstrationWithFullWord(infoFromPrevState):
 
 
     # 1- update the shape models with the incoming demos
-    for shape in demoShapesReceived:
-        glyph = shape.path
-        shapeName = shape.shapeType
+    for shape_msg in demoShapesReceived:
+        glyph = shape_msg.path
+        shapeName = shape_msg.shapeType
 
         rospy.logdebug("Downsampling %s..." % shapeName)
         glyph = downsampleShape(glyph, NUMPOINTS_SHAPEMODELER)
         rospy.loginfo("Downsampling of %s done. Demo received for %s" % (shapeName, shapeName))
-        learningManager.respond_to_demonstration_letter(glyph, shapeName, grade)
-
+        new_shape_msg, score = learningManager.respond_to_demonstration_letter(glyph, shapeName, grade)
+	
+	pub_shape_msg.publish(new_shape_msg)
+	score_msg = Float32
+	score_msg.data=score
+	pub_score.publish(score_msg)
     # 2- display the update word
 
     #clear screen
@@ -868,8 +879,11 @@ if __name__ == "__main__":
         import inspect
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]
+        rospy.logwarn(installDirectory )
         datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/bad_letters'
+	rospy.logwarn(datasetDirectory )
         robotDirectory = installDirectory + '/share/shape_learning/robot_tries/optimal'
+	rospy.logwarn(robotDirectory)
 
     stateMachine = StateMachine()
     stateMachine.add_state("STARTING_INTERACTION", startInteraction)
@@ -931,7 +945,7 @@ if __name__ == "__main__":
     #InteractionSettings.setDatasetDirectory(datasetDirectory)
     #wordManager = ShapeLearnerManager(InteractionSettings.generateSettings, SHAPE_LOGGING_PATH)
     #
-    learningManager = LearningManager(datasetDirectory, datasetDirectory, robotDirectory)
+    learningManager = LearningManager(datasetDirectory, datasetDirectory, robotDirectory,datasetDirectory)
 
     textShaper = TextShaper()
     screenManager = ScreenManager(0.2, 0.1395)

@@ -9,7 +9,7 @@ import time
 import rospy
 import datetime
 from std_msgs.msg import Int16, Int32, String, Empty, Float32
-
+import os
 import csv
 
 word = ""
@@ -43,9 +43,12 @@ class log():
         
         
         date_time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
-        self.filePath = '/home/alexis/.ros/visionLog/' + date_time + '.csv'
-        
-        with open(self.filePath, 'wb') as csvfile:
+	path = '~/.ros/visionLog/'
+	if not os.path.exists(path):
+    		os.makedirs(path)
+        self.filePath = path + date_time + '.csv' #self.filePath = '~/.ros/visionLog/' + date_time + '.csv'
+        rospy.loginfo('LOG', 'Regsitering log file here :'+self.filePath)
+        with open(self.filePath, 'wb+') as csvfile:
             intro = '********************************NEW SESSION********************************'
             wr = csv.writer(csvfile, delimiter='-', quoting=csv.QUOTE_NONE, quotechar='')
             wr.writerow(intro)
@@ -136,7 +139,7 @@ class log():
         child_counter = child_counter + 1
         
         date_time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
-        self.filePath = '/home/ferran/.ros/visionLog/' + date_time + '.csv'
+        self.filePath = '~/.ros/visionLog/' + date_time + '.csv'
         
         with open(self.filePath, 'wb') as csvfile:
             intro = "********************************NEW SESSION********************************"
