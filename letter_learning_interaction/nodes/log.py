@@ -217,7 +217,7 @@ class log():
         ts = time.time()
         return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S:%f')
 
-    def close(self): 
+    def close(self,data): 
 	timestamp = self.getTime()
 	with open(self.filePath, 'a') as csvfile:
             wr = csv.writer(csvfile, delimiter=' ', quoting=csv.QUOTE_MINIMAL)
