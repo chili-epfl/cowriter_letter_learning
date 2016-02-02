@@ -988,6 +988,7 @@ if __name__ == "__main__":
     datasetDirectory = rospy.get_param('~dataset_directory','default')
     if(datasetDirectory.lower()=='default'): #use default
         import inspect
+        #TODO: letters templates must be in share files of Allograph
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]
         datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/uji_pen_chars2'
