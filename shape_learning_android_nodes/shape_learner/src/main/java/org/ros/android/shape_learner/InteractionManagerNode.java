@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
 import nav_msgs.Path;
-import std_msgs.Empty;
-import std_msgs.Float32;
+import std_msgs.*;
+import std_msgs.String;
 
 /**
  * ROS node for capturing and publishing user interactions.
@@ -36,30 +36,33 @@ import std_msgs.Float32;
 
 class InteractionManagerNode extends AbstractNodeMain {
     private static final java.lang.String TAG = "InteractionManager";
-    private String touchInfoTopicName;
+    private java.lang.String touchInfoTopicName;
     private ConnectedNode connectedNode;
     private Publisher<PointStamped> touchInfoPublisher;
     private Publisher<PointStamped> gestureInfoPublisher;
-    private String gestureInfoTopicName;
+    private java.lang.String gestureInfoTopicName;
     private Publisher<Empty> clearScreenPublisher;
-    private String clearScreenTopicName;
+    private java.lang.String clearScreenTopicName;
     private Publisher<Path> userDrawnShapePublisher;
-    private String userDrawnShapeTopicName;
+    private java.lang.String userDrawnShapeTopicName;
     private Publisher<Float32> timeResponsePublisher;
-    private String TimeResponseTopicName;
+    private java.lang.String TimeResponseTopicName;
     private Publisher<Float32> timeWritingPublisher;
-    private String TimeWritingTopicName;
+    private java.lang.String TimeWritingTopicName;
+    private Publisher<std_msgs.String> userFeedbackPublisher;
+    private java.lang.String FeedbackTopicName;
 
-    public void setTouchInfoTopicName(String topicName) {
+    public void setTouchInfoTopicName(java.lang.String topicName) {
         this.touchInfoTopicName = topicName;
     }
-    public void setGestureInfoTopicName(String topicName) { this.gestureInfoTopicName = topicName; }
-    public void setClearScreenTopicName(String topicName) {
+    public void setGestureInfoTopicName(java.lang.String topicName) { this.gestureInfoTopicName = topicName; }
+    public void setClearScreenTopicName(java.lang.String topicName) {
         this.clearScreenTopicName = topicName;
     }
-    public void setUserDrawnShapeTopicName(String topicName) { this.userDrawnShapeTopicName = topicName; }
-    public void setTimeResponseTopicName(String topicName) {this.TimeResponseTopicName = topicName; }
-    public void setTimeWritingTopicName(String topicName) {this.TimeWritingTopicName = topicName; }
+    public void setUserDrawnShapeTopicName(java.lang.String topicName) { this.userDrawnShapeTopicName = topicName; }
+    public void setTimeResponseTopicName(java.lang.String topicName) {this.TimeResponseTopicName = topicName; }
+    public void setTimeWritingTopicName(java.lang.String topicName) {this.TimeWritingTopicName = topicName; }
+    public void setFeedbackTopicName(java.lang.String topicName) {this.FeedbackTopicName = topicName; }
 
     @Override
     public GraphName getDefaultNodeName() {
@@ -83,6 +86,8 @@ class InteractionManagerNode extends AbstractNodeMain {
                 connectedNode.newPublisher(TimeResponseTopicName, Float32._TYPE);
         this.timeWritingPublisher =
                 connectedNode.newPublisher(TimeWritingTopicName, Float32._TYPE);
+        this.userFeedbackPublisher =
+                connectedNode.newPublisher(FeedbackTopicName, std_msgs.String._TYPE);
 
     }
 
@@ -136,6 +141,13 @@ class InteractionManagerNode extends AbstractNodeMain {
             publishUserDrawnShapeMessage(stroke);
         }
         publishUserDrawnShapeMessage(new ArrayList<double[]>()); //publish empty stroke to show message is done
+    }
+
+    public void publishUserFeedbackMessage(java.lang.String userFeedbackMessage){
+        Log.e(TAG, "Publishing feedback message");
+        std_msgs.String m = userFeedbackPublisher.newMessage();
+        m.setData(userFeedbackMessage);
+        userFeedbackPublisher.publish(m);
     }
 
     public void publishTimeResponse(long x) {

@@ -122,6 +122,7 @@ public class SystemDrawingViewNode extends ImageView implements NodeMain {
 
     @Override
     public void onStart(final ConnectedNode connectedNode) {
+
         ParameterTree param = connectedNode.getParameterTree();
         WAIT_TO_SYNC_TRAJ = param.getBoolean("wait_to_sync_traj", WAIT_TO_SYNC_TRAJ_DEFAULT);
         Log.e(TAG, "ROSparam for wait_to_sync_traj exists on server: " + Boolean.toString(param.has("wait_to_sync_traj")));
@@ -171,7 +172,7 @@ public class SystemDrawingViewNode extends ImageView implements NodeMain {
     }
 
     public void publishShapeFinishedMessage(){
-        Log.e(TAG, "Publishing shape finished message.");
+        Log.e(TAG, "Publishing shape finished message.ahaha");
         std_msgs.String message = finishedShapePublisher.newMessage();
         message.setData(String.valueOf(true));
         finishedShapePublisher.publish(message);
@@ -195,7 +196,9 @@ public class SystemDrawingViewNode extends ImageView implements NodeMain {
             Log.e(TAG, "got a message at " + mConnectedNode.getCurrentTime().toString());
 
             AnimationDrawable drawable = (DisplayMethods.AnimationDrawableWithEndCallback)drawableCallable.call(mMessage);
+            drawable.setOneShot(true);
 
+            Log.e(TAG, "anim created ") ;
             LayerDrawable layerDrawable;
             Drawable currentDrawable = getDrawable();
             if(currentDrawable == null){ //first drawable
@@ -212,6 +215,7 @@ public class SystemDrawingViewNode extends ImageView implements NodeMain {
                     layers[numExistingLayers-1] = previousAnimation.getFrame(previousAnimation.getNumberOfFrames()-1); //prevent re-animation
                     layers[numExistingLayers] = drawable;
                     layerDrawable = new LayerDrawable(layers);
+
                     setImageDrawable(layerDrawable);
                 }
                 else{
@@ -221,6 +225,7 @@ public class SystemDrawingViewNode extends ImageView implements NodeMain {
                     layers[1] = drawable;
                     layerDrawable = new LayerDrawable(layers);
                     setImageDrawable(layerDrawable);
+
                 }
             }
 

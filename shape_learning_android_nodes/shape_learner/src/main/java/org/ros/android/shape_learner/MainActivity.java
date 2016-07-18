@@ -55,7 +55,7 @@ public class MainActivity extends RosActivity {
     private UserDrawingView userDrawingsView;
     private UserDrawingView userGestureView;
     private BoxesViewNode boxesView;
-    private Button buttonClear;
+    private Button buttonClear, buttonPositive, buttonNegative;
     private ImageButton buttonSend;
     private ArrayList< ArrayList<double[]> > userDrawnMessage = new ArrayList<ArrayList<double[]>>();
     private GestureDetector gestureDetector;
@@ -82,6 +82,10 @@ public class MainActivity extends RosActivity {
         buttonClear.setOnClickListener(clearListener); // Register the onClick listener with the implementation below
         buttonSend = (ImageButton)findViewById(R.id.buttonSend);
         buttonSend.setOnClickListener(sendListener); // Register the onClick listener with the implementation below
+        buttonPositive = (Button)findViewById(R.id.buttonPositive);
+        buttonPositive.setOnClickListener(positiveListener); // Register the onClick listener with the implementation below
+        buttonNegative = (Button)findViewById(R.id.buttonNegative);
+        buttonNegative.setOnClickListener(negativeListener); // Register the onClick listener with the implementation below
 
         startWatchdogClearer();
 
@@ -152,13 +156,14 @@ public class MainActivity extends RosActivity {
         interactionManagerNode.setUserDrawnShapeTopicName("user_drawn_shapes");
         interactionManagerNode.setTimeResponseTopicName("time_response");
         interactionManagerNode.setTimeWritingTopicName("time_writing");
+        interactionManagerNode.setFeedbackTopicName("user_feedback");
 
         NodeConfiguration nodeConfiguration = NodeConfiguration.newPublic(InetAddressFactory.newNonLoopback().getHostAddress());
         // At this point, the user has already been prompted to either enter the URI
         // of a master to use or to start a master locally.
         nodeConfiguration.setMasterUri(getMasterUri());
         String hostIp = getMasterUri().getHost();
-        Log.d(TAG, "Host's IP address: "+hostIp);
+        Log.d(TAG, "Host's IP address: " + hostIp);
 
         NtpTimeProvider ntpTimeProvider = new NtpTimeProvider(InetAddressFactory.newFromHostString(hostIp),nodeMainExecutor.getScheduledExecutorService());
         ntpTimeProvider.startPeriodicUpdates(1, TimeUnit.MINUTES);
@@ -171,9 +176,11 @@ public class MainActivity extends RosActivity {
             nodeMainExecutor.execute(interactionManagerNode, nodeConfiguration.setNodeName("android_gingerbread2/interaction_manager"));
         }
         else{
+            Log.e(TAG, " node creation ");
             nodeMainExecutor.execute(systemDrawingViewNode, nodeConfiguration.setNodeName("android_gingerbread/display_manager"));
             nodeMainExecutor.execute(interactionManagerNode, nodeConfiguration.setNodeName("android_gingerbread/interaction_manager"));
             nodeMainExecutor.execute(boxesView, nodeConfiguration.setNodeName("android_gingerbread/boxes_drawer"));
+            Log.e(TAG, " node creation over");
         }
 
         DisplayMethods displayMethods = new DisplayMethods();
@@ -181,6 +188,7 @@ public class MainActivity extends RosActivity {
             @Override
             public Integer call(Integer message) {
                 onShapeDrawingFinish();
+                Log.e(TAG, " shaped finished");
                 return 1;
             }
         });
@@ -189,6 +197,7 @@ public class MainActivity extends RosActivity {
         displayMethods.setDisplayHeight(systemDrawingViewNode.getHeight());
         displayMethods.setDisplayWidth(systemDrawingViewNode.getWidth());
         displayMethods.setDisplayRate(systemDrawingViewNode.getDisplayRate()); //read value that node got from rosparam server
+
     }
 
     private void onStylusStrokeDrawingFinished(ArrayList<double[]> points){
@@ -258,6 +267,22 @@ public class MainActivity extends RosActivity {
         }
     };
 
+    private View.OnClickListener positiveListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            Log.e(TAG, "onClick() called - positive button");
+            String tmp= "+";
+            interactionManagerNode.publishUserFeedbackMessage(tmp);
+        }
+    };
+
+    private View.OnClickListener negativeListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            Log.e(TAG, "onClick() called - negative button");
+            String tmp = "-";
+            interactionManagerNode.publishUserFeedbackMessage(tmp);
+        }
+    };
+
     private void onShapeDrawingFinish(){
         Log.e(TAG,"Animation finished!");
         systemDrawingViewNode.publishShapeFinishedMessage();
@@ -304,6 +329,7 @@ public class MainActivity extends RosActivity {
             }
         };
         timer.schedule(clearWatchdog, 0, timeBetweenWatchdogClears_ms);
+        Log.e(TAG, "watchdog started");
     }
 
     public void onStartWriting(){

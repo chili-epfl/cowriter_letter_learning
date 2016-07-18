@@ -50,6 +50,7 @@ public class DisplayMethods {
     public void setDisplayRate(double rate){
         mDisplayRate = rate;
     }
+
     public static double MM2PX(double x){ return x*MM2INCH*PPI_tablet; }
     public static double PX2MM(double x){return x/(PPI_tablet*MM2INCH);}
 
