@@ -1,16 +1,13 @@
 <launch>
     <arg name="use_robot_in_interaction" default="true" /> <!-- if false, robot-related commands will be skipped -->
     <arg name="nao_ip" default="195.168.1.4" /> <!-- IP address of non-simulated robot (ignored if simulated) -->
-    <arg name="use_sim_nao" default="true" /> <!-- if true, webots simulation expected to be running -->
+    <arg name="use_sim_nao" default="false" /> <!-- if true, webots simulation expected to be running -->
 
     <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
     <arg name="nao_standing" default="false" /> <!-- if false, robot will stay in the 'crouched' pose, but still writing -->
     <arg name="nao_speaking" default="true" />
     <arg name="nao_handedness" default="right" /> 
     <arg name="person_side" default="$(arg nao_handedness)" />   
-        
-    <arg name="use_external_camera" default="true" /> <!-- if false, camera on robot will be used -->
-    <arg name="camera_device" default="/dev/video0" /> <!-- only used if using external camera -->
 
     <!-- Language of interaction (french and english supported by nao) -->
     <arg name="language" default="english" />
@@ -46,12 +43,6 @@
     <arg name="clear_writing_surface_topic" default="clear_screen" /> 
     <arg name="camera_publishing_status_topic" default="camera_publishing_status" />
     
-    <!-- Frame of camera that will be detecting fiducial markers for words to write -->
-    <arg name="word_detector_frame_id" value="camera_frame" if="$(arg use_external_camera)" />
-    <arg name="word_detector_frame_id" value="CameraTop_frame" unless="$(arg use_external_camera)" />
-    
-    <arg name="camera_image_topic" value="v4l/camera/image_raw" if="$(arg use_external_camera)" />
-    <arg name="camera_image_topic" value="/nao_camera/image_raw" unless="$(arg use_external_camera)" />
 
     <rosparam param="/wait_to_sync_traj" subst_value="true">$(arg nao_writing)</rosparam> <!-- if using robot, tablet must wait to display at the same time as it -->
     <arg name="nao_ip_to_use" value="127.0.0.1" if="$(arg use_sim_nao)" /> <!-- look for local simulator -->
@@ -124,13 +115,6 @@
         <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
     </node>
 
-    <!-- Start the joke activity -->
-    <node pkg="letter_learning_interaction" type="joke_nao.py" name="joke_nao">
-        <param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
-        <param name="shape_log" type="str" value="$(arg shape_log)" />
-        <param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" /> 
-    </node>
-
     <!-- Start the learning algorithm -->
     <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">	   
         <param  name="grade_topic" type="str" value="$(arg grade_topic)"/>
@@ -148,31 +132,6 @@
 	<param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
         <param name="nb_repetitions_topic" type="str" value="$(arg nb_repetitions_topic)"/>    
     </node>
-
-    <!-- Start the appropriate camera -->
-    <group if="$(arg use_external_camera)">
-        <include file="$(find gscam)/v4l.launch" >
-            <arg name="DEVICE" value="$(arg camera_device)"/>
-        </include>
-    </group>
-    <group unless="$(arg use_external_camera)">
-        <!--<include file="$(find nao_trajectory_following)/launch/nao_camera_controllable.launch">
-            <arg name="nao_ip" value="$(arg nao_ip_to_use)"/>
-        </include>-->
-    </group>
-    
-    <!-- Start the card detection -->
-    <!--<include file="$(find ros_markers)/detect.launch" >
-        <arg name="camera_frame_id" value="$(arg word_detector_frame_id)"/>
-        <arg name="image_topic" value="$(arg camera_image_topic)"/>
-    </include>-->
-    <!--<node pkg="letter_learning_interaction" type="word_card_detector.py" name="word_detector">
-        <param name="detector_frame_id" type="str" value="$(arg word_detector_frame_id)"/>
-        <param name="language" type="str" value="$(arg language)"/>
-        <param name="detected_words_topic" type="str" value="$(arg words_to_write_topic)"/>
-        <param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
-        <param name="test_request_topic" type="str" value="$(arg test_request_topic)"/>
-    </node>-->
 
     <!-- Start the display manager server, which will be accessed by the gesture_manager node and the relevant shape_learning package's node -->
     <node pkg="letter_learning_interaction" type="display_manager_server.py" name="display_manager_server"/>
