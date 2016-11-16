@@ -2,25 +2,21 @@
     <arg name="use_robot_in_interaction" default="true" /> <!-- if false, robot-related commands will be skipped -->
     <arg name="nao_ip" default="195.168.1.4" /> <!-- IP address of non-simulated robot (ignored if simulated) -->
     <arg name="use_sim_nao" default="false" /> <!-- if true, webots simulation expected to be running -->
-
     <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
     <arg name="nao_standing" default="false" /> <!-- if false, robot will stay in the 'crouched' pose, but still writing -->
     <arg name="nao_speaking" default="true" />
     <arg name="nao_handedness" default="right" /> 
     <arg name="person_side" default="$(arg nao_handedness)" />   
-
     <!-- Language of interaction (french and english supported by nao) -->
     <arg name="language" default="english" />
-    
     <!-- Name of frame representing writing surface origin (at bottom left of surface, with x to the left and y up) -->
     <arg name="writing_surface_frame_id" default="writing_surface" /> 
-
     <!-- Where the datasets for generating letter models for the learning algorithm are stored -->
     <arg name="letter_model_dataset_directory" default="default"/> 
-
     <!-- Where to store the full log of each of the steps of the letter learning. Empty string to avoid logging -->
     <arg name="shape_log" default="shapes.log"/> 
     
+
     <!-- Inputs to learning algorithm -->
     <arg name="shape_feedback_topic" default="shape_feedback" />
     <arg name="words_to_write_topic" default="words_to_write" />
@@ -35,7 +31,6 @@
     <arg name="time_activity_topic" default="time_activity" />
     <arg name="nb_repetitions_topic" default="nb_repetitions" />
     <arg name="grade_topic" default="user_feedback"/>
-
     
     <!-- Outputs from learning algorithm -->
     <arg name="trajectory_visualization_topic" default="write_traj" /> 
@@ -144,5 +139,18 @@
     </node>
 
     <node pkg="letter_learning_interaction" type="log.py" name="log"/>
+
+    <node pkg="robot_interaction" type="animations_manager.py" name="animations_manager">
+        <param name="id_robot" value="1" />
+        <param name="nao_ip" value="10.0.0.10" />
+        <param name="nao_port" value="9559" />
+        <param name="periodUpdateTimerBSI" value="0.1" />  
+        <param name="topic_animations" value="topic_animations" />
+        <param name="topic_settings" value="topic_settings" />
+        <param name="topic_poses" value="topic_poses" />
+        <param name="topic_activity" value="state_activity" />
+        <param name="topic_end_animation" value="topic_end_animation" />
+        <param name="parkinson_scale" value="3" />
+    </node>
 
 </launch>

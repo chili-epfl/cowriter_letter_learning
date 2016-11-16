@@ -248,7 +248,6 @@ def trackFace():
     tracker.track(targetName)
     
 # ------------------------------- METHODS FOR DIFFERENT STATES IN STATE MACHINE
-
 def respondToDemonstration(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_DEMONSTRATION')
     rospy.loginfo("STATE: RESPONDING_TO_DEMONSTRATION")
@@ -406,6 +405,10 @@ def publishShape(infoFromPrevState):
 
 def publishWord(infoFromPrevState):
     #print('------------------------------------------ PUBLISHING_WORD')
+    # wait that the robot finishes moving and then draw the new word
+    while isMoving():
+        rospy.sleep(0.1)
+
     rospy.loginfo("STATE: PUBLISHING_WORD")
     pub_state_activity.publish("PUBLISHING_WORD")
     shapedWord = textShaper.shapeWord(learningManager)
@@ -569,7 +572,6 @@ def respondToNewWord(infoFromPrevState):
         nextState = "STOPPING"
     return nextState, infoForNextState
 
-
 def askForFeedback(infoFromPrevState):
     global nb_repetitions
     global nextSideToLookAt
@@ -648,7 +650,6 @@ def askForFeedback(infoFromPrevState):
         nextState = "STOPPING"
     return nextState, infoForNextState
 
-
 def respondToTestCard(infoFromPrevState):
     #print('------------------------------------------ RESPONDING_TO_TEST_CARD')
     rospy.loginfo("STATE: RESPONDING_TO_TEST_CARD")
@@ -659,7 +660,6 @@ def respondToTestCard(infoFromPrevState):
     nextState = "WAITING_FOR_WORD"
     infoForNextState = {'state_cameFrom': "RESPONDING_TO_TEST_CARD"}
     return nextState, infoForNextState
-
 
 def stopInteraction(infoFromPrevState):
     #print('------------------------------------------ STOPPING')
@@ -732,8 +732,7 @@ def startInteraction(infoFromPrevState):
         nextState = "STOPPING"
         
     return nextState, infoForNextState
- 
-    
+   
 def waitForWord(infoFromPrevState):
     global wordReceived
 
@@ -759,7 +758,6 @@ def waitForWord(infoFromPrevState):
         pub_camera_status.publish(False) #turn camera off
 
     return nextState, infoForNextState
-
 
 def waitForFeedback(infoFromPrevState):
     global changeActivityReceived
@@ -832,7 +830,6 @@ def waitForFeedback(infoFromPrevState):
         
     return nextState, infoForNextState    
     
-
 infoToRestore_waitForRobotToConnect = None
 def waitForRobotToConnect(infoFromPrevState):
     global infoToRestore_waitForRobotToConnect
@@ -857,7 +854,6 @@ def waitForRobotToConnect(infoFromPrevState):
         nextState = "STOPPING"
     return nextState, infoForNextState
 
-
 infoToRestore_waitForTabletToConnect = None
 def waitForTabletToConnect(infoFromPrevState):
     global infoToRestore_waitForTabletToConnect
@@ -879,7 +875,15 @@ def waitForTabletToConnect(infoFromPrevState):
 
     if stopRequestReceived:
         nextState = "STOPPING"
-    return nextState, infoForNextState    
+    return nextState, infoForNextState
+
+
+def isMoving():
+    for task in motionProxy.getTaskList():
+        if task[0] == 'angleInterpolationBezier':
+            return True
+
+    return False  
         
 ### --------------------------------------------------------------- MAIN
 shapesLearnt = []
@@ -893,15 +897,14 @@ grade = 0 #  +1 if green, -1 if red
 if __name__ == "__main__":
 
     datasetDirectory = rospy.get_param('~dataset_directory','default')
-    if True :#(datasetDirectory.lower()=='default'): #use default
+    if (datasetDirectory.lower()=='default'): #use default
         import inspect
         fileName = inspect.getsourcefile(ShapeModeler)
         installDirectory = fileName.split('/lib')[0]
-        rospy.logwarn(installDirectory )
-        datasetDirectory = installDirectory + '/share/shape_learning/letter_model_datasets/bad_letters'
-	rospy.logwarn(datasetDirectory )
-        robotDirectory = installDirectory + '/share/shape_learning/robot_tries/optimal'
-	rospy.logwarn(robotDirectory)
+
+        datasetDirectory = installDirectory + '/share/allograph/letter_model_datasets/alexis_set_for_children'
+        robotDirectory = installDirectory +  '/share/allograph/robot_tries/start'
+
 
     stateMachine = StateMachine()
     stateMachine.add_state("STARTING_INTERACTION", startInteraction)

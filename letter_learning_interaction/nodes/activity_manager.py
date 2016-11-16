@@ -64,7 +64,6 @@ def startInteraction(infoFromPrevState):
         nextState = "STOPPING"
     return nextState, infoForNextState
 
-
 infoToRestore_waitForTabletToConnect = None
 def waitForTabletToConnect(infoFromPrevState):
     global infoToRestore_waitForTabletToConnect
@@ -87,7 +86,6 @@ def waitForTabletToConnect(infoFromPrevState):
         nextState = "STOPPING"
     return nextState, infoForNextState    
 
-    
 infoToRestore_waitForRobotToConnect = None
 def waitForRobotToConnect(infoFromPrevState):
     global infoToRestore_waitForRobotToConnect
@@ -110,8 +108,7 @@ def waitForRobotToConnect(infoFromPrevState):
     if stopRequestReceived:
         nextState = "STOPPING"
     return nextState, infoForNextState
-
-             
+       
 def activity(infoFromPrevState):
     global start_time 
     global changeActivityReceived
@@ -151,7 +148,6 @@ def activity(infoFromPrevState):
         nextState = "STOPPING"
     return nextState, infoForNextState
     
-
 def stopInteraction(infoFromPrevState):
     rospy.loginfo("STATE: STOPPING")
     if naoSpeaking:

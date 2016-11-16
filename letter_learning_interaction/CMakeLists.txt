@@ -82,7 +82,6 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
  install(PROGRAMS
    nodes/display_manager_server.py
-   nodes/word_card_detector.py
    nodes/tablet_input_interpreter.py
    nodes/learning_words_nao.py
    nodes/watchdog_clearer.py
