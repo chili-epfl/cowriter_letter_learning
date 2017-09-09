@@ -1,4 +1,4 @@
-#The CoWriter project: Teaching a robot to write
+# The CoWriter project: Teaching a robot to write
 
 A set of ROS nodes which facilitate the user interaction allowing a robot to be taught handwriting.
 
@@ -18,8 +18,8 @@ Dependencies
 For more information, see the readmes in internal directories and the parameters which are available for specification in the launch files.
 
 
-##Usage
-####With only a tablet
+## Usage
+#### With only a tablet
 (With the `shape_learner` app deployed on the tablet)
 
 ```
@@ -35,7 +35,7 @@ roslaunch letter_learning_interaction nao_learning.launch use_robot_in_interacti
 
 *An example of the system learning the word 'cow' (blue) based on user demonstrations with the tablet (green).*
 
-####With a webots simulated Nao running
+#### With a webots simulated Nao running
 
 (With the `shape_learner` app deployed on the tablet, a webcam plugged in, and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/res/tags5-9_wordgame_robotWriting.pdf) printed)
 
@@ -48,7 +48,7 @@ roslaunch letter_learning_interaction nao_learning.launch
 *(Alternatively, `rostopic pub /words_to_write std_msgs/String "use" -1` may be used to send words to write (e.g. 'use') manually, without detecting cards.)*
 *Note that console output can be viewed with `rosrun rqt_console rqt_console`.*
 
-####With a [ROS-enabled Nao](https://github.com/ros-nao/nao_robot)
+#### With a [ROS-enabled Nao](https://github.com/ros-nao/nao_robot)
 (With the `shape_learner` app deployed on the tablet and [word cards with fiducial markers](https://github.com/chili-epfl/cowriter_letter_learning/raw/master/res/tags5-9_wordgame_robotWriting.pdf) printed (robot's camera will be used))
 
 Install chrony on the computer so that the robot may sync its clock.
