@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """
 Created on Sun Mar 22 11:29:31 2015
 
@@ -10,7 +9,7 @@ from naoqi import ALBroker, ALProxy
 class ConnexionToNao():
     @staticmethod
     def setConnexion(naoConnected, naoWriting, naoStanding, NAO_IP, LANGUAGE, effector):
-
+        
         if naoConnected:
             port = 9559
             myBroker = ALBroker("myBroker", #I'm not sure that pyrobots doesn't already have one of these open called NAOqi?
@@ -19,9 +18,9 @@ class ConnexionToNao():
                     NAO_IP,      # parent broker IP
                     port)        # parent broker port
             motionProxy = ALProxy("ALMotion", NAO_IP, port)
-
+        
             postureProxy = ALProxy("ALRobotPosture", NAO_IP, port)
-            textToSpeech = ALProxy("ALTextToSpeech", NAO_IP, port)
+            textToSpeech = ALProxy("ALTextToSpeech", NAO_IP, port)   
             textToSpeech.setLanguage(LANGUAGE.capitalize())
             #textToSpeech.setVolume(1.0)
             if naoWriting:
@@ -33,7 +32,7 @@ class ConnexionToNao():
                     motionProxy.setStiffnesses(["Head", "LArm", "RArm"], 0.5)
                     motionProxy.setStiffnesses(["LHipYawPitch", "LHipRoll", "LHipPitch", "RHipYawPitch", "RHipRoll", "RHipPitch"], 0.8)
                     motionProxy.wbEnableEffectorControl(effector, False) #turn whole body motion control off
-
+                    
                 armJoints_standInit = motionProxy.getAngles(effector,True)
-
+                   
         return myBroker, postureProxy, motionProxy, textToSpeech, armJoints_standInit

@@ -34,7 +34,7 @@ def configure_logging(path = "/tmp"):
     generatedWordLogger.addHandler(handler)
     generatedWordLogger.setLevel(logging.DEBUG)
 
-
+  
 def downsampleShape(shape, NUMPOINTS_SHAPEMODELER):
     #downsample user-drawn shape so appropriate size for shapeLearner
     numPointsInShape = len(shape)/2
@@ -61,8 +61,8 @@ def downsampleShape(shape, NUMPOINTS_SHAPEMODELER):
     shape = numpy.reshape(shape, (-1, 1)) #explicitly make it 2D array with only one column
 
     return shape
-
-
+    
+    
 def make_bounding_box_msg(bbox, selected=False):
 
     bb = Float64MultiArray()
@@ -70,7 +70,7 @@ def make_bounding_box_msg(bbox, selected=False):
     dim = MultiArrayDimension()
     dim.label = "bb" if not selected else "select" # we use the label of the first dimension to carry the selected/not selected infomation
     bb.layout.dim = [dim]
-
+    
     x_min, y_min, x_max, y_max = bbox
     bb.data = [x_min, y_min, x_max, y_max]
 
@@ -82,14 +82,14 @@ def separate_strokes_with_density(shapedWord):
     paths = shapedWord.get_letters_paths()
 
     for path in paths:
-        dists = []
+        dists = []        
         for (x1,y1),(x2,y2) in zip(path[:-1],path[1:]):
             dists.append(numpy.sqrt((x1-x2)**2+(y1-y2)**2))
         mean_dist = numpy.mean(dists)
         density = numpy.array(dists)/mean_dist
         pen_up = numpy.zeros(len(density)+1)
-        #pen_up[density>3] = 1
-        pen_up[-1] = 1
+        pen_up[density>3] = 1
+        #pen_up[-1] = 1
         pen_ups.append(pen_up)
 
     return pen_ups
@@ -118,7 +118,7 @@ def make_traj_msg(shapedWord, deltaT, FRAME, delayBeforeExecuting, t0,pen_ups, l
             point = PoseStamped()
 
             point.pose.position.x = x
-            point.pose.position.y = y
+            point.pose.position.y = y   
             point.header.frame_id = FRAME
             print point.header.frame_id
             point.header.stamp = rospy.Time(t0 + pointIdx * deltaT) #@TODO allow for variable time between points for now
@@ -142,7 +142,7 @@ def lookAtTablet(motionProxy, effector):
     else:
         if(effector=="RArm"):   #tablet will be on our right
             motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_right,0.2)
-        else:
+        else: 
             motionProxy.setAngles(["HeadYaw", "HeadPitch"],headAngles_lookAtTablet_left,0.2)
 
 def lookAndAskForFeedback(toSay, side, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector):

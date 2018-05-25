@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # coding: utf-8
 
 import rospy
 from std_msgs.msg import String, Empty, Int32
 import time
-from letter_learning_interaction.state_machine import StateMachine 
+from letter_learning_interaction.state_machine import StateMachine
 from letter_learning_interaction.helper import configure_logging, lookAndAskForFeedback
 from letter_learning_interaction.config_params import *
 from letter_learning_interaction.set_connexion import ConnexionToNao
@@ -43,19 +43,19 @@ def onChangeActivity(message):
     changeActivityReceived = message.data
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    
+
 def startInteraction(infoFromPrevState):
     global nextSideToLookAt
     #print('------------------------------------------ STARTING_INTERACTION')
     rospy.loginfo("STATE: STARTING_INTERACTION")
     if naoSpeaking:
-        if(alternateSidesLookingAt): 
+        if(alternateSidesLookingAt):
             lookAndAskForFeedback(introPhrase,nextSideToLookAt, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
             pub_activity.publish("learning_words_nao")
-            rospy.sleep(1) 
+            rospy.sleep(1)
         else:
             lookAndAskForFeedback(introPhrase,personSide, naoWriting, naoSpeaking, textToSpeech, motionProxy, armJoints_standInit, effector)
-            rospy.sleep(1)            
+            rospy.sleep(1)
             pub_activity.publish("learning_words_nao")
 
     nextState = "ACTIVITY"
@@ -84,7 +84,7 @@ def waitForTabletToConnect(infoFromPrevState):
 
     if stopRequestReceived:
         nextState = "STOPPING"
-    return nextState, infoForNextState    
+    return nextState, infoForNextState
 
 infoToRestore_waitForRobotToConnect = None
 def waitForRobotToConnect(infoFromPrevState):
@@ -108,16 +108,16 @@ def waitForRobotToConnect(infoFromPrevState):
     if stopRequestReceived:
         nextState = "STOPPING"
     return nextState, infoForNextState
-       
+
 def activity(infoFromPrevState):
-    global start_time 
+    global start_time
     global changeActivityReceived
 
-    
+
     if infoFromPrevState['state_cameFrom'] != "ACTIVITY":
         #print('------------------------------------------ waiting_for_robot_to_connect')
-        rospy.loginfo("STATE: ACTIVITY")    
-    
+        rospy.loginfo("STATE: ACTIVITY")
+
     if changeActivityReceived == 'drawing_nao':
         changeActivityReceived = " "
         start_time = time.time()
@@ -139,15 +139,15 @@ def activity(infoFromPrevState):
     else:
         nextState = "ACTIVITY"
         infoForNextState = {'state_cameFrom': "ACTIVITY"}
-    rospy.sleep(1)        
+    rospy.sleep(1)
     end_time = time.time()
-    elapsed = end_time - start_time        
-    pub_activity_time.publish(elapsed)     
-        
+    elapsed = end_time - start_time
+    pub_activity_time.publish(elapsed)
+
     if stopRequestReceived:
         nextState = "STOPPING"
     return nextState, infoForNextState
-    
+
 def stopInteraction(infoFromPrevState):
     rospy.loginfo("STATE: STOPPING")
     if naoSpeaking:
@@ -159,8 +159,8 @@ def stopInteraction(infoFromPrevState):
     infoForNextState = 0
     rospy.signal_shutdown('Interaction exited')
     return nextState, infoForNextState
-    
-    
+
+
 ### --------------------------------------------------------------- MAIN
 settings_shapeLearners = []
 
@@ -183,17 +183,17 @@ if __name__ == "__main__":
 
     from letter_learning_interaction.watchdog import Watchdog #TODO: Make a ROS server so that *everyone* can access the connection statuses
     tabletWatchdog = Watchdog('watchdog_clear/tablet', 0.4)
-    
+
     #initialise display manager for shapes (manages positioning of shapes)
     rospy.loginfo('Waiting for display manager services to become available')
 
-    rospy.sleep(2.0)  #Allow some time for the subscribers to do their thing, 
+    rospy.sleep(2.0)  #Allow some time for the subscribers to do their thing,
                         #or the first message will be missed (eg. first traj on tablet, first clear request locally)
 
     rospy.loginfo("Nao configuration: writing=%s, speaking=%s (%s), standing=%s, handedness=%s" % (naoWriting, naoSpeaking, LANGUAGE, naoStanding, NAO_HANDEDNESS))
 
     myBroker, postureProxy, motionProxy, textToSpeech, armJoints_standInit = ConnexionToNao.setConnexion(naoConnected, naoWriting, naoStanding, NAO_IP, LANGUAGE, effector)
 
-    stateMachine.run(infoForStartState)   
-    rospy.spin()   
+    stateMachine.run(infoForStartState)
+    rospy.spin()
     tabletWatchdog.stop()

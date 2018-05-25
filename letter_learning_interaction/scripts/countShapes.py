@@ -23,11 +23,11 @@ def on_user_traj(message):
     global numStrokes, numCorrectionsReceivedForThisWord,time_firstEvent, strokes, userShapes
     if(time_firstEvent is None):
         time_firstEvent = rospy.Time.now();
-        
+
     if(len(message.poses)==0 and numStrokes > 0): #shape finished
         global numUserShapes
         numUserShapes+=1;
-        
+
         numStrokes = 0;
         strokes = [];
         numCorrectionsReceivedForThisWord += 1;
@@ -36,14 +36,14 @@ def on_user_traj(message):
         stroke = [];
         for point in message.poses:
             stroke.extend([point.pose.position.x, point.pose.position.y]);
-            
+
         strokeString = ','.join(map(str, stroke))
         writer_letters.writerow([str(numUserShapes) + ',' + str(numStrokes) + ',' +strokeString]);
         numStrokes += 1;
         writer.writerow(['Word','Number of corrections received', 'Number of corrections responded to', 'Number of corrections ignored']);
-        
+
 numRobotShapes=0
-numCorrectionsRespondedToForThisWord = -1; #don't count the first drawing as a 'correction' 
+numCorrectionsRespondedToForThisWord = -1; #don't count the first drawing as a 'correction'
 def on_robot_traj(message):
     global numRobotShapes, numCorrectionsRespondedToForThisWord,time_firstEvent
     if(time_firstEvent is None):
@@ -69,18 +69,18 @@ def on_word(message):
         numCorrectionsIgnored += numCorrectionsIgnoredForThisWord;
         writer.writerow([prevWord,str(numCorrectionsReceivedForThisWord),str(numCorrectionsRespondedToForThisWord),str(numCorrectionsIgnoredForThisWord)]);
         numCorrectionsRespondedToForThisWord = -1;
-        numCorrectionsReceivedForThisWord = 0;        
+        numCorrectionsReceivedForThisWord = 0;
     else:
         writer.writerow(['Word','Number of corrections received', 'Number of corrections responded to', 'Number of corrections ignored']);
     print('-------------------Number of word requests received: ' + str(numWords) + ' ('+message.data+')');
     prevWord = message.data;
-    
-numWordsBeforeTest = 0;    
+
+numWordsBeforeTest = 0;
 def onTestRequestReceived(message):
     global numWordsBeforeTest
     print('Number of words before test: '+str(numWords));
     numWordsBeforeTest = numWords;
-    
+
 def onStopRequestReceived(message):
     global interactionFinished
     interactionFinished = True;
@@ -94,8 +94,8 @@ def onStopRequestReceived(message):
     time_stop = rospy.Time.now();
     duration = time_stop - time_firstEvent;
     print('Total time: '+str(duration.to_sec()))
-           
-    
+
+
     #writer.writerow(['Total number of robot-drawn shape messages',str(numRobotShapes)]);
     writer.writerow(['Total number of words', str(numWords)]);
     writer.writerow(['Number of words before test', str(numWordsBeforeTest)]);
@@ -103,7 +103,7 @@ def onStopRequestReceived(message):
     writer.writerow(['Total number of user-drawn shapes',str(numUserShapes)]);
     writer.writerow(['Total number of user-drawn shapes responded to',str(numUserShapes-numCorrectionsIgnored)]);
     writer.writerow(['Total number of corrections ignored', str(numCorrectionsIgnored)]);
-    
+
 
 args = None
 
@@ -121,21 +121,21 @@ if __name__ == "__main__":
     import csv
     csvfile = open(args.output,'wb')
     writer = csv.writer(csvfile, delimiter=' ',
-                                #quotechar='|', 
+                                #quotechar='|',
                                 quoting=csv.QUOTE_MINIMAL)
 
     csvfile_letters = open(args.output_letters,'wb')
     writer_letters = csv.writer(csvfile_letters, delimiter=' ',
-                                #quotechar='', 
+                                #quotechar='',
                                 quoting=csv.QUOTE_MINIMAL)
-    
-    
+
+
     rospy.init_node('shape_counter')
     user_traj = rospy.Subscriber(SHAPES_TOPIC, Path, on_user_traj)
     robot_traj = rospy.Subscriber(LETTER_TOPIC, Path, on_robot_traj)
     words_subscriber = rospy.Subscriber(WORDS_TOPIC, String, on_word);
     test_subscriber = rospy.Subscriber(TEST_TOPIC, Empty, onTestRequestReceived);
-    stop_subscriber = rospy.Subscriber(STOP_TOPIC, Empty, onStopRequestReceived); 
+    stop_subscriber = rospy.Subscriber(STOP_TOPIC, Empty, onStopRequestReceived);
     print('Waiting for rosbag to start')
 
     rospy.spin()

@@ -5,22 +5,22 @@
     <arg name="nao_writing" default="$(arg use_robot_in_interaction)" /> <!-- if false, robot will not stand and move its arm to write -->
     <arg name="nao_standing" default="false" /> <!-- if false, robot will stay in the 'crouched' pose, but still writing -->
     <arg name="nao_speaking" default="true" />
-    <arg name="nao_handedness" default="right" /> 
-    <arg name="person_side" default="$(arg nao_handedness)" />   
+    <arg name="nao_handedness" default="right" />
+    <arg name="person_side" default="$(arg nao_handedness)" />
     <!-- Language of interaction (french and english supported by nao) -->
     <arg name="language" default="english" />
     <!-- Name of frame representing writing surface origin (at bottom left of surface, with x to the left and y up) -->
-    <arg name="writing_surface_frame_id" default="writing_surface" /> 
+    <arg name="writing_surface_frame_id" default="writing_surface" />
     <!-- Where the datasets for generating letter models for the learning algorithm are stored -->
-    <arg name="letter_model_dataset_directory" default="default"/> 
+    <arg name="letter_model_dataset_directory" default="default"/>
     <!-- Where to store the full log of each of the steps of the letter learning. Empty string to avoid logging -->
-    <arg name="shape_log" default="shapes.log"/> 
-    
+    <arg name="shape_log" default="shapes.log"/>
+
 
     <!-- Inputs to learning algorithm -->
     <arg name="shape_feedback_topic" default="shape_feedback" />
     <arg name="words_to_write_topic" default="words_to_write" />
-    <arg name="stop_request_topic" default="stop_learning" />    
+    <arg name="stop_request_topic" default="stop_learning" />
     <arg name="test_request_topic" default="test_learning" />
     <arg name="touch_info_topic" default="touch_info" />
     <arg name="gesture_info_topic" default="gesture_info" />
@@ -31,34 +31,34 @@
     <arg name="time_activity_topic" default="time_activity" />
     <arg name="nb_repetitions_topic" default="nb_repetitions" />
     <arg name="grade_topic" default="user_feedback"/>
-    
+
     <!-- Outputs from learning algorithm -->
-    <arg name="trajectory_visualization_topic" default="write_traj" /> 
+    <arg name="trajectory_visualization_topic" default="write_traj" />
     <arg name="trajectory_nao_topic" default="write_traj_downsampled" />
-    <arg name="clear_writing_surface_topic" default="clear_screen" /> 
+    <arg name="clear_writing_surface_topic" default="clear_screen" />
     <arg name="camera_publishing_status_topic" default="camera_publishing_status" />
-    
+
 
     <rosparam param="/wait_to_sync_traj" subst_value="true">$(arg nao_writing)</rosparam> <!-- if using robot, tablet must wait to display at the same time as it -->
     <arg name="nao_ip_to_use" value="127.0.0.1" if="$(arg use_sim_nao)" /> <!-- look for local simulator -->
     <arg name="nao_ip_to_use" value="$(arg nao_ip)" unless="$(arg use_sim_nao)" />
-    
+
     <!-- Redifined as a global variables -->
     <param name="/activityManager/nao_ip" type="str" value="$(arg nao_ip_to_use)"/>
     <param name="/activityManager/nao_speaking" type="bool" value="$(arg nao_speaking)" />
     <param name="/activityManager/nao_writing" type="bool" value="$(arg nao_writing)" />
     <param name="/activityManager/nao_standing" type="bool" value="$(arg nao_standing)" />
     <param name="/activityManager/use_robot_in_interaction" type="bool" value="$(arg use_robot_in_interaction)"/>
-    <param name="/activityManager/language" type="str" value="$(arg language)"/>    
+    <param name="/activityManager/language" type="str" value="$(arg language)"/>
     <param name="/activityManager/nao_handedness" type="str" value="$(arg nao_handedness)"/>
     <param name="/activityManager/current_activity_topic" type="str" value="$(arg current_activity_topic)"/>
     <param name="/activityManager/new_teacher_topic" type="str" value="$(arg new_teacher_topic)"/>
-    <param name="/activityManager/camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>  
+    <param name="/activityManager/camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>
     <param name="/activityManager/clear_writing_surface_topic" type="str" value="$(arg clear_writing_surface_topic)"/>
     <param name="/activityManager/time_activity_topic" value="$(arg time_activity_topic)"/>
 
 
-    <!-- ##### END ARGUMENTS ##### -->  
+    <!-- ##### END ARGUMENTS ##### -->
     <group if="$(arg use_robot_in_interaction)" >
         <group if="$(arg nao_writing)">
             <!-- Start the capabilities for the Nao to trace messages on a writing surface -->
@@ -66,13 +66,13 @@
                 <arg name="use_sim_nao" value="$(arg use_sim_nao)" />
                 <arg name="nao_handedness" value="$(arg nao_handedness)" />
                 <arg name="nao_ip" value="$(arg nao_ip_to_use)"/>
-                <arg name="writing_surface_frame_id" value="$(arg writing_surface_frame_id)" /> 
+                <arg name="writing_surface_frame_id" value="$(arg writing_surface_frame_id)" />
                 <arg name="trajectory_visualization_input_topic" value="$(arg trajectory_visualization_topic)" />
                 <arg name="trajectory_nao_input_topic" value="$(arg trajectory_nao_topic)" />
                 <arg name="clear_writing_surface_topic" value="$(arg clear_writing_surface_topic)" />
             </include>
         </group>
-    </group> 
+    </group>
 
     <!-- Start the node which switches the activities -->
     <node pkg="letter_learning_interaction" type="activity_manager.py" name="activity_manager">
@@ -96,9 +96,9 @@
         <param name="shape_writing_finished_topic" type="str" value="$(arg shape_writing_finished_topic)"/>
         <param name="user_drawn_shapes_topic" type="str" value="$(arg user_drawn_shapes_topic)"/>
         <param name="new_teacher_topic" type="str" value="$(arg new_teacher_topic)"/>
-        
+
         <param name="trajectory_output_topic" type="str" value="$(arg trajectory_visualization_topic)"/>
-        <param name="trajectory_output_nao_topic" type="str" value="$(arg trajectory_nao_topic)"/>        
+        <param name="trajectory_output_nao_topic" type="str" value="$(arg trajectory_nao_topic)"/>
         <param name="clear_writing_surface_topic" type="str" value="$(arg clear_writing_surface_topic)"/>
         <param name="camera_publishing_status_topic" type="str" value="$(arg camera_publishing_status_topic)"/>-->
     </node>
@@ -111,13 +111,13 @@
     </node>
 
     <!-- Start the learning algorithm -->
-    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">	   
+    <node pkg="letter_learning_interaction" type="learning_words_nao.py" name="learning_words_nao">
         <param  name="grade_topic" type="str" value="$(arg grade_topic)"/>
 	<param name="stop_request_topic" type="str" value="$(arg stop_request_topic)"/>
 	<param name="test_request_topic" type="str" value="$(arg test_request_topic)"/>
 	<param name="processed_user_shape_topic" type="str" value="$(arg user_drawn_shapes_topic)"/>
 	<param name="words_to_write_topic" type="str" value="$(arg words_to_write_topic)"/>
-	<param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>
+  <param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>
 	<param name="shape_writing_finished_topic" type="str" value="$(arg shape_writing_finished_topic)"/>
 	<param name="shape_log" type="str" value="$(arg shape_log)" />
 	<param name="trajectory_output_nao_topic" type="str" value="$(arg trajectory_nao_topic)"/>
@@ -125,14 +125,14 @@
 	<param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
 	<param name="writing_surface_frame_id" type="str" value="$(arg writing_surface_frame_id)"/>
 	<param name="dataset_directory" type="str" value="$(arg letter_model_dataset_directory)" />
-        <param name="nb_repetitions_topic" type="str" value="$(arg nb_repetitions_topic)"/>    
+        <param name="nb_repetitions_topic" type="str" value="$(arg nb_repetitions_topic)"/>
     </node>
 
     <!-- Start the display manager server, which will be accessed by the gesture_manager node and the relevant shape_learning package's node -->
     <node pkg="letter_learning_interaction" type="display_manager_server.py" name="display_manager_server"/>
 
     <!-- Start the gesture listener, which will map gestures to the relevant shape -->
-    <node pkg="letter_learning_interaction" type="tablet_input_interpreter.py" name="tablet_input_interpreter">   
+    <node pkg="letter_learning_interaction" type="tablet_input_interpreter.py" name="tablet_input_interpreter">
         <param name="shape_feedback_topic" type="str" value="$(arg shape_feedback_topic)"/>
         <param name="touch_info_topic" type="str" value="$(arg touch_info_topic)"/>
         <param name="gesture_info_topic" type="str" value="$(arg gesture_info_topic)"/>
@@ -140,17 +140,6 @@
 
     <node pkg="letter_learning_interaction" type="log.py" name="log"/>
 
-    <node pkg="robot_interaction" type="animations_manager.py" name="animations_manager">
-        <param name="id_robot" value="1" />
-        <param name="nao_ip" value="10.0.0.10" />
-        <param name="nao_port" value="9559" />
-        <param name="periodUpdateTimerBSI" value="0.1" />  
-        <param name="topic_animations" value="topic_animations" />
-        <param name="topic_settings" value="topic_settings" />
-        <param name="topic_poses" value="topic_poses" />
-        <param name="topic_activity" value="state_activity" />
-        <param name="topic_end_animation" value="topic_end_animation" />
-        <param name="parkinson_scale" value="3" />
-    </node>
+
 
 </launch>
